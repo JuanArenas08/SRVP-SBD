@@ -1,3 +1,6 @@
+import mysql.connector
+conexion = mysql.connector.connect(user="root",password="asdasd", host="localhost",database="srvp",port=3306)
+# print(conexion) 
 from funciones import *
 while True:
     print("=" * 50)
