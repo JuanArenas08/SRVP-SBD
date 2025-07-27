@@ -106,3 +106,24 @@ def mostrar_videojuegos():
 
     time.sleep(1.5)
 
+def mostrar_psPlus():
+    print("\n🔐 Cuentas PS Plus Disponibles:")
+    try:
+        conexion = obtener_conexion()  # ✅
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM PS_PLUS WHERE disponibilidad = TRUE")
+        resultados = cursor.fetchall()
+        headers = [i[0] for i in cursor.description]
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print("❌ Error:", err)
+    
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conexion' in locals():
+            conexion.close()
+
+    time.sleep(1.5)  
+
