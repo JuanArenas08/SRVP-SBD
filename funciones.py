@@ -2,6 +2,15 @@ import time
 import mysql.connector
 from tabulate import tabulate
 
+def obtener_conexion():
+    return mysql.connector.connect(
+        user="root",
+        password="admin",   # O tu contraseña real
+        host="localhost",
+        database="srvp",
+        port=3306
+    )
+
 def mostrar_menu():
     print("\n¿Qué deseas hacer?")
     print("1️⃣  Mostrar todos los clientes")
@@ -14,16 +23,9 @@ def mostrar_rentas():
     print("\n🧾 Rentas Actuales:\n")
 
     try:
-        conexion = mysql.connector.connect(
-            user="root",
-            password="asdasd",
-            host="localhost",
-            database="srvp",
-            port=3306
-        )
+        conexion = obtener_conexion()  # ✅ usamos la función
         cursor = conexion.cursor()
 
-        # Consulta con JOIN para obtener también el nombre del empleado
         query = """
         SELECT 
             Renta.ID_Renta,
@@ -62,40 +64,45 @@ def mostrar_rentas():
 
 def mostrar_clientes():
     print("\n👥 Lista de Clientes Registrados:")
-    conexion = mysql.connector.connect(
-        user="root",
-        password="asdasd",
-        host="localhost",
-        database="srvp",
-        port=3306
-    )
-    cursor = conexion.cursor()
-    cursor.execute("SELECT * FROM Cliente")
-    resultados = cursor.fetchall()
+    try:
+        conexion = obtener_conexion()  # ✅
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM Cliente")
+        resultados = cursor.fetchall()
 
-    headers = [i[0] for i in cursor.description]  # obtiene los nombres de las columnas
-    print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        headers = [i[0] for i in cursor.description]
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
 
-    cursor.close()
-    conexion.close()
+    except mysql.connector.Error as err:
+        print("❌ Error:", err)
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conexion' in locals():
+            conexion.close()
+
     time.sleep(1.5)
 
 def mostrar_videojuegos():
     print("\n🎲 Videojuegos Disponibles:")
-    conexion = mysql.connector.connect(
-        user="root",
-        password="asdasd",
-        host="localhost",
-        database="srvp",
-        port=3306
-    )
-    cursor = conexion.cursor()
-    cursor.execute("SELECT * FROM Videojuego WHERE disponibilidad = TRUE")
-    resultados = cursor.fetchall()
+    try:
+        conexion = obtener_conexion()  # ✅
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM Videojuego WHERE disponibilidad = TRUE")
+        resultados = cursor.fetchall()
 
-    headers = [i[0] for i in cursor.description]
-    print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        headers = [i[0] for i in cursor.description]
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
 
-    cursor.close()
-    conexion.close()
+    except mysql.connector.Error as err:
+        print("❌ Error:", err)
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conexion' in locals():
+            conexion.close()
+
     time.sleep(1.5)
+

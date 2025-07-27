@@ -1,5 +1,5 @@
 import mysql.connector
-conexion = mysql.connector.connect(user="root",password="asdasd", host="localhost",database="srvp",port=3306)
+conexion = mysql.connector.connect(user="root",password="admin", host="localhost",database="srvp",port=3306)
 # print(conexion) 
 from funciones import *
 while True:
