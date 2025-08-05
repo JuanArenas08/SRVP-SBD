@@ -5,6 +5,8 @@ from funciones import *
 # Se debe ingresar tanto en main.py como el funciones.py
 conexion = mysql.connector.connect(user="root",password="admin", host="localhost",database="srvp",port=3306)
 #conexion = mysql.connector.connect(user="root",password="Leonardo", host="127.0.0.1",database="srvp",port=3306)
+#conexionjuan = mysql.connector.connect(user="root",password="asdasd", host="localhost",database="srvpv1",port=3306)
+
 # print(conexion) 
 while True:
     print("=" * 50)
