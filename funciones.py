@@ -1,15 +1,7 @@
 import time
 import mysql.connector
 from tabulate import tabulate
-
-def obtener_conexion():
-    return mysql.connector.connect(
-        user="root",        # ingrese nombre del usuario
-        password="admin",   # ingrese contraseña de su servidor
-        host="hostname",   # ingrese nombre del servidor
-        database="srvp",    # ingrese nombre de la base de datos
-        port=3306           # ingrese el puerto, por defecto es el 3306
-    )
+from conexion import *
 
 def mostrar_menu():
     print("\n¿Qué deseas hacer?")

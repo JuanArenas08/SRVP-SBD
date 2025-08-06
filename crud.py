@@ -1,22 +1,22 @@
 import mysql.connector
-
+from conexion import *
 #CONECTAMOS A LA BASE DE DATOS
 
-def conectar():
-    return mysql.connector.connect(
-        user="root",
-        password="admin",
-        host="hostname",
-        database="srvp",
-        port=3306
-    )
+#def conectar():
+#    return mysql.connector.connect(
+#        user="root",
+#        password="admin",
+#        host="hostname",
+#        database="srvp",
+#        port=3306
+#    )
 
 #CRUD CLIENTE
 #AÑADIR
 
 def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         sql = """
         INSERT INTO Cliente (ID_Cliente, email, historial, nombre_completo, telefono)
@@ -36,7 +36,7 @@ def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
 
 def mostrar_clientes():
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Cliente")
         resultados = cursor.fetchall()
@@ -52,7 +52,7 @@ def mostrar_clientes():
 
 def actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         sql = """
         UPDATE Cliente
@@ -79,7 +79,7 @@ def actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono):
 
 def eliminar_cliente(id_cliente):
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         sql = "DELETE FROM Cliente WHERE ID_Cliente = %s"
         cursor.execute(sql, (id_cliente,))
