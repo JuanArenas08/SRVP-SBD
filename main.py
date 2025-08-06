@@ -1,10 +1,9 @@
 import mysql.connector
 from funciones import *
-
 # Para conectarse a su base de datos, debe ingresar el usuario, password, nombre del servidor, nombre de la base de datos y el puerto.
 # Se debe ingresar tanto en main.py como el funciones.py
-conexion = mysql.connector.connect(user="root",password="admin", host="localhost",database="srvp",port=3306)
-#conexion = mysql.connector.connect(user="root",password="Leonardo", host="127.0.0.1",database="srvp",port=3306)
+#conexion = mysql.connector.connect(user="root",password="admin", host="localhost",database="srvp",port=3306)
+conexion = mysql.connector.connect(user="root",password="Leonardo", host="127.0.0.1",database="svrp",port=3306)
 # print(conexion) 
 while True:
     print("=" * 50)

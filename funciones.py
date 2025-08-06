@@ -8,7 +8,7 @@ def obtener_conexion():
         password="admin",   # ingrese contraseña de su servidor
         host="localhost",   # ingrese nombre del servidor
         database="srvp",    # ingrese nombre de la base de datos
-        port=3306           # ingrse el puerto, por defecto es el 3306
+        port=3306           # ingrese el puerto, por defecto es el 3306
     )
 
 def mostrar_menu():
