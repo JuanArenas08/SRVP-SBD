@@ -1,15 +1,19 @@
 import mysql.connector
-
+import time
+from tabulate import tabulate
+#from funciones import obtener_conexion
 #CONECTAMOS A LA BASE DE DATOS
 
 def conectar():
     return mysql.connector.connect(
         user="root",
-        password="admin",
+        password="asdasd",
         host="localhost",
         database="srvp",
         port=3306
     )
+
+
 
 #CRUD CLIENTE
 #AÑADIR
@@ -93,3 +97,52 @@ def eliminar_cliente(id_cliente):
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
+
+
+
+# CRUD RENTAS
+
+
+#
+def mostrar_rentas():
+    print("\n🧾 Rentas Actuales:\n")
+
+    try:
+        conexion = conectar() 
+        cursor = conexion.cursor()
+
+        query = """
+        SELECT 
+            Renta.ID_Renta,
+            Empleado.nombre AS Nombre_Empleado,
+            Renta.fecha_inicio,
+            Renta.fecha_devolucion_esperada,
+            Renta.fecha_devolucion_real,
+            Renta.estado_renta,
+            Renta.hora_transaccion,
+            Renta.descuento,
+            Renta.Tipo
+        FROM Renta
+        JOIN Empleado ON Renta.ID_Empleado = Empleado.ID_Empleado
+        ORDER BY Renta.ID_Renta;
+        """
+
+        cursor.execute(query)
+        resultados = cursor.fetchall()
+        columnas = [desc[0] for desc in cursor.description]
+
+        if resultados:
+            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+        else:
+            print("No hay rentas registradas.")
+
+    except mysql.connector.Error as err:
+        print("❌ Error al conectar o consultar la base de datos:", err)
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conexion' in locals():
+            conexion.close()
+
+    time.sleep(1.5)
