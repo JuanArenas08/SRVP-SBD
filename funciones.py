@@ -1,11 +1,11 @@
-import time
-import mysql.connector
-from tabulate import tabulate
+
+from crud import *
+
 
 def obtener_conexion():
     return mysql.connector.connect(
         user="root",        # ingrese nombre del usuario
-        password="admin     ",   # ingrese contraseña de su servidor
+        password="asdasd",   # ingrese contraseña de su servidor
         host="localhost",   # ingrese nombre del servidor
         database="srvp",    # ingrese nombre de la base de datos
         port=3306           # ingrse el puerto, por defecto es el 3306
@@ -19,48 +19,34 @@ def mostrar_menu():
     print("0️⃣  Salir")
     print("-" * 50)
 
-def mostrar_rentas():
-    print("\n🧾 Rentas Actuales:\n")
 
-    try:
-        conexion = obtener_conexion()  # ✅ usamos la función
-        cursor = conexion.cursor()
+def rentas():
+    while True:
+        print("\n¿Qué deseas hacer en Rentas?")
+        print("1️⃣  Añadir Rentas")
+        print("2️⃣  Mostrar todas las rentas")
+        print("3️⃣  Editar Rentas Existentes")
+        print("4️⃣  Eliminar Rentas Existentes")
+        print("0️⃣  Salir")
+        print("-" * 50)
 
-        query = """
-        SELECT 
-            Renta.ID_Renta,
-            Empleado.nombre AS Nombre_Empleado,
-            Renta.fecha_inicio,
-            Renta.fecha_devolucion_esperada,
-            Renta.fecha_devolucion_real,
-            Renta.estado_renta,
-            Renta.hora_transaccion,
-            Renta.descuento,
-            Renta.Tipo
-        FROM Renta
-        JOIN Empleado ON Renta.ID_Empleado = Empleado.ID_Empleado
-        ORDER BY Renta.ID_Renta;
-        """
-
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        columnas = [desc[0] for desc in cursor.description]
-
-        if resultados:
-            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+        opc = input ("Seleccione una opción: ")
+        if opc == "1":
+            print("asd")
+        elif opc == "2":
+            mostrar_rentas()
+        elif opc == "3":
+            mostrar_rentas
+        elif opc == "4":
+            mostrar_rentas
+        elif opc == "0":
+            print("Saliendo del menú de Rentas...")
+            break
         else:
-            print("No hay rentas registradas.")
+            print("Opción no válida. Intente nuevamente...")
+        
 
-    except mysql.connector.Error as err:
-        print("❌ Error al conectar o consultar la base de datos:", err)
 
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals():
-            conexion.close()
-
-    time.sleep(1.5)
 
 def mostrar_clientes():
     print("\n👥 Lista de Clientes Registrados:")

@@ -1,17 +1,18 @@
 import mysql.connector
-from funciones import obtener_conexion
-
+import time
+from tabulate import tabulate
+#from funciones import obtener_conexion
 #CONECTAMOS A LA BASE DE DATOS
-'''
+
 def conectar():
     return mysql.connector.connect(
         user="root",
-        password="admin",
+        password="asdasd",
         host="localhost",
         database="srvp",
         port=3306
     )
-'''
+
 
 
 #CRUD CLIENTE
@@ -19,7 +20,7 @@ def conectar():
 
 def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
-        conn = obtener_conexion()
+        conn = conectar()
         cursor = conn.cursor()
         sql = """
         INSERT INTO Cliente (ID_Cliente, email, historial, nombre_completo, telefono)
@@ -39,7 +40,7 @@ def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
 
 def mostrar_clientes():
     try:
-        conn = obtener_conexion()
+        conn = conectar()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Cliente")
         resultados = cursor.fetchall()
@@ -55,7 +56,7 @@ def mostrar_clientes():
 
 def actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
-        conn = obtener_conexion()
+        conn = conectar()
         cursor = conn.cursor()
         sql = """
         UPDATE Cliente
@@ -82,7 +83,7 @@ def actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono):
 
 def eliminar_cliente(id_cliente):
     try:
-        conn = obtener_conexion()
+        conn = conectar()
         cursor = conn.cursor()
         sql = "DELETE FROM Cliente WHERE ID_Cliente = %s"
         cursor.execute(sql, (id_cliente,))
@@ -96,3 +97,52 @@ def eliminar_cliente(id_cliente):
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
+
+
+
+# CRUD RENTAS
+
+
+#
+def mostrar_rentas():
+    print("\n🧾 Rentas Actuales:\n")
+
+    try:
+        conexion = conectar() 
+        cursor = conexion.cursor()
+
+        query = """
+        SELECT 
+            Renta.ID_Renta,
+            Empleado.nombre AS Nombre_Empleado,
+            Renta.fecha_inicio,
+            Renta.fecha_devolucion_esperada,
+            Renta.fecha_devolucion_real,
+            Renta.estado_renta,
+            Renta.hora_transaccion,
+            Renta.descuento,
+            Renta.Tipo
+        FROM Renta
+        JOIN Empleado ON Renta.ID_Empleado = Empleado.ID_Empleado
+        ORDER BY Renta.ID_Renta;
+        """
+
+        cursor.execute(query)
+        resultados = cursor.fetchall()
+        columnas = [desc[0] for desc in cursor.description]
+
+        if resultados:
+            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+        else:
+            print("No hay rentas registradas.")
+
+    except mysql.connector.Error as err:
+        print("❌ Error al conectar o consultar la base de datos:", err)
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conexion' in locals():
+            conexion.close()
+
+    time.sleep(1.5)

@@ -3,9 +3,9 @@ from funciones import *
 
 # Para conectarse a su base de datos, debe ingresar el usuario, password, nombre del servidor, nombre de la base de datos y el puerto.
 # Se debe ingresar tanto en main.py como el funciones.py
-conexion = mysql.connector.connect(user="root",password="admin", host="localhost",database="srvp",port=3306)
+#conexion = mysql.connector.connect(user="root",password="admin", host="localhost",database="srvp",port=3306)
 #conexion = mysql.connector.connect(user="root",password="Leonardo", host="127.0.0.1",database="srvp",port=3306)
-#conexionjuan = mysql.connector.connect(user="root",password="asdasd", host="localhost",database="srvpv1",port=3306)
+#conexion = mysql.connector.connect(user="root",password="asdasd", host="localhost",database="srvpv1",port=3306)
 
 # print(conexion) 
 while True:
@@ -15,7 +15,7 @@ while True:
     
     print("\n¿Qué deseas hacer?")
     print("1. Mostrar todos los clientes")
-    print("2. Mostrar todas las rentas")
+    print("2. Rentas")
     print("3. Mostrar los videojuegos disponibles")
     print("4. Mostrar las cuentas de playstationPlus disponibles")
     print("5. Mostrar rentas de un cliente")
@@ -27,7 +27,7 @@ while True:
     if opcion == "1":
         mostrar_clientes()
     elif opcion == "2":
-        mostrar_rentas()
+        rentas()
     elif opcion == "3":
         mostrar_videojuegos()
     elif opcion =="4":
