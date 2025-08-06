@@ -14,7 +14,7 @@ while True:
     print("=" * 50)
     
     print("\n¿Qué deseas hacer?")
-    print("1. Mostrar todos los clientes")
+    print("1. Clientes")
     print("2. Rentas")
     print("3. Mostrar los videojuegos disponibles")
     print("4. Mostrar las cuentas de playstationPlus disponibles")
@@ -25,7 +25,7 @@ while True:
     opcion = input("Selecciona una opción: ")
 
     if opcion == "1":
-        mostrar_clientes()
+        clientes()
     elif opcion == "2":
         rentas()
     elif opcion == "3":

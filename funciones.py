@@ -46,29 +46,94 @@ def rentas():
             print("Opción no válida. Intente nuevamente...")
         
 
+def clientes():
+    while True:
+        print("\n¿Qué deseas hacer en Clientes?")
+        print("1️⃣  Añadir Cliente")
+        print("2️⃣  Mostrar todos los Clientes")
+        print("3️⃣  Editar Clientes Existentes")
+        print("4️⃣  Eliminar Clientes Existentes")
+        print("0️⃣  Salir")
+        print("-" * 50)
 
+        opc = input("Seleccione una opción: ")
 
-def mostrar_clientes():
-    print("\n👥 Lista de Clientes Registrados:")
-    try:
-        conexion = obtener_conexion()  # ✅
-        cursor = conexion.cursor()
-        cursor.execute("SELECT * FROM Cliente")
-        resultados = cursor.fetchall()
+        if opc == "1":
+            print("\nIngrese los datos para agregar un nuevo cliente:")
 
-        headers = [i[0] for i in cursor.description]
-        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+            # Validar ID único
+            while True:
+                id_cliente = input("ID Cliente: ").strip()
+                if not id_cliente.isdigit():
+                    print("⚠️ El ID debe ser un número.")
+                    continue
 
-    except mysql.connector.Error as err:
-        print("❌ Error:", err)
+                # Verificar si el ID ya existe en la base
+                if id_cliente_existe(id_cliente):
+                    print("⚠️ Este ID ya existe. Ingrese otro.")
+                    continue
+                break
 
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals():
-            conexion.close()
+            # Validar email
+            while True:
+                email = input("Email: ").strip()
+                if "@" not in email or "." not in email:
+                    print("⚠️ El email no es válido.")
+                else:
+                    break
 
-    time.sleep(1.5)
+            # Validar historial (solo opciones permitidas)
+            historial_permitido = ["mala", "baja", "regular", "buena", "excelente"]
+            while True:
+                historial = input("Historial (mala/baja/regular/buena/excelente): ").strip().lower()
+                if historial not in historial_permitido:
+                    print("⚠️ Historial inválido. Opciones: mala, baja, regular, buena, excelente.")
+                else:
+                    historial = historial.capitalize()
+                    break
+
+            # Validar nombre completo
+            while True:
+                nombre_completo = input("Nombre completo: ").strip().title()
+                if nombre_completo == "":
+                    print("⚠️ El nombre no puede estar vacío.")
+                else:
+                    break
+
+            # Validar teléfono
+            while True:
+                telefono = input("Teléfono (10 dígitos): ").strip()
+                if not telefono.isdigit() or len(telefono) != 10:
+                    print("⚠️ El teléfono debe tener exactamente 10 dígitos.")
+                else:
+                    break
+
+            agregar_cliente(id_cliente, email, historial, nombre_completo, telefono)
+
+        elif opc == "2":
+            mostrar_clientes()
+
+        elif opc == "3":
+            print("\nActualizar Cliente")
+            id_cliente = input("Ingrese el ID del cliente a actualizar: ").strip()
+            email = input("Nuevo Email: ").strip()
+            historial = input("Nuevo Historial: ").strip().capitalize()
+            nombre_completo = input("Nuevo Nombre Completo: ").strip().title()
+            telefono = input("Nuevo Teléfono: ").strip()
+            actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono)
+
+        elif opc == "4":
+            print("\nEliminar Cliente")
+            id_cliente = input("Ingrese el ID del cliente a eliminar: ").strip()
+            eliminar_cliente(id_cliente)
+
+        elif opc == "0":
+            print("Saliendo del menú de Clientes...")
+            break
+
+        else:
+            print("Opción no válida. Intente nuevamente...")
+
 
 def mostrar_videojuegos():
     print("\n🎲 Videojuegos Disponibles:")

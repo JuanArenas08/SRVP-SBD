@@ -37,7 +37,7 @@ def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
         if 'conn' in locals(): conn.close()
 
 #CONSULTAR
-
+'''
 def mostrar_clientes():
     try:
         conn = conectar()
@@ -51,6 +51,32 @@ def mostrar_clientes():
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
+'''
+
+
+
+
+def mostrar_clientes():
+    print("\n👥 Lista de Clientes Registrados:")
+    try:
+        conexion = conectar()  # ✅
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM Cliente")
+        resultados = cursor.fetchall()
+
+        headers = [i[0] for i in cursor.description]
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print("❌ Error:", err)
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conexion' in locals():
+            conexion.close()
+
+    time.sleep(1.5)
 
 #EDITAR
 
@@ -146,3 +172,17 @@ def mostrar_rentas():
             conexion.close()
 
     time.sleep(1.5)
+
+
+def id_cliente_existe(id_cliente):
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT ID_Cliente FROM Cliente WHERE ID_Cliente = %s", (id_cliente,))
+        return cursor.fetchone() is not None
+    except mysql.connector.Error as err:
+        print(f"❌ Error al verificar ID: {err}")
+        return False
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
