@@ -546,15 +546,19 @@ def eliminar_multa(id_multa):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = "DELETE FROM Multa WHERE ID_Multa = %s"
-        cursor.execute(sql, (id_multa,))
+
+        # Eliminar primero las referencias en aplica_multa (clave foránea)
+        cursor.execute("DELETE FROM aplica_multa WHERE ID_Multa = %s", (id_multa,))
+
+        # Luego eliminar la multa
+        cursor.execute("DELETE FROM Multa WHERE ID_Multa = %s", (id_multa,))
         conn.commit()
-        if cursor.rowcount > 0:
-            print("✅ Multa eliminada exitosamente.")
-        else:
-            print("⚠️ No se encontró una multa con ese ID.")
+
+        print("✅ Multa eliminada correctamente.")
+
     except mysql.connector.Error as err:
         print(f"❌ No se ha podido eliminar la multa. Error: {err}")
+
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
