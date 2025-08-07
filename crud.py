@@ -1,6 +1,7 @@
 import mysql.connector
 from conexion import *
 from tabulate import tabulate
+from datetime import datetime
 import time
 #CONECTAMOS A LA BASE DE DATOS
 
@@ -123,11 +124,83 @@ def eliminar_cliente(id_cliente):
         if 'conn' in locals(): conn.close()
 
 
+def id_cliente_existe(id_cliente):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        cursor.execute("SELECT ID_Cliente FROM Cliente WHERE ID_Cliente = %s", (id_cliente,))
+        return cursor.fetchone() is not None
+    except mysql.connector.Error as err:
+        print(f"❌ Error al verificar ID: {err}")
+        return False
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+
 
 # CRUD RENTAS
+def id_existe(tabla, columna, valor):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        query = f"SELECT {columna} FROM {tabla} WHERE {columna} = %s"
+        cursor.execute(query, (valor,))
+        return cursor.fetchone() is not None
+    except mysql.connector.Error as err:
+        print(f"❌ Error al verificar {tabla}: {err}")
+        return False
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+#AGREGAR RENTA
+
+def agregar_renta(id_renta, id_empleado, fecha_inicio,
+                  fecha_devolucion_real, fecha_devolucion_esperada,
+                  estado_renta, hora_transaccion, tipo, descuento=0):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Renta (ID_Renta, ID_Empleado, Fecha_Inicio, "
+            "Fecha_Devolucion_Real, Fecha_Devolucion_Esperada, Estado_Renta, "
+            "Hora_Transaccion, Tipo, Descuento) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (id_renta, id_empleado, fecha_inicio,
+             fecha_devolucion_real, fecha_devolucion_esperada,
+             estado_renta, hora_transaccion, tipo, descuento)
+        )
+        conexion.commit()
+        print("✅ Renta agregada exitosamente.")
+    except mysql.connector.Error as error:
+        print(f"❌ Error al agregar la renta: {error}")
+    finally:
+        cursor.close()
+        conexion.close()
 
 
-#
+#ELIMINAR RENTA
+
+def eliminar_renta(id_renta):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        sql = "DELETE FROM Renta WHERE ID_Renta = %s"
+        cursor.execute(sql, (id_renta,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            print("✅ Renta eliminada exitosamente.")
+        else:
+            print("⚠️ No se encontró una renta con ese ID.")
+    except mysql.connector.Error as err:
+        print(f"❌ No se ha podido eliminar la renta. Error: {err}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+#MOSTRAR RENTAS
+
 def mostrar_rentas():
     print("\n🧾 Rentas Actuales:\n")
 
@@ -171,19 +244,41 @@ def mostrar_rentas():
 
     time.sleep(1.5)
 
+#EDITAR RENTA
 
-def id_cliente_existe(id_cliente):
+def actualizar_renta(id_renta, id_empleado, fecha_inicio, fecha_devolucion_real,
+                     fecha_devolucion_esperada, estado_renta, hora_transaccion, tipo):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        cursor.execute("SELECT ID_Cliente FROM Cliente WHERE ID_Cliente = %s", (id_cliente,))
-        return cursor.fetchone() is not None
+        sql = """
+        UPDATE Renta
+        SET ID_Empleado = %s,
+            fecha_inicio = %s,
+            fecha_devolucion_real = %s,
+            fecha_devolucion_esperada = %s,
+            estado_renta = %s,
+            hora_transaccion = %s,
+            Tipo = %s
+        WHERE ID_Renta = %s
+        """
+        valores = (id_empleado, fecha_inicio, fecha_devolucion_real,
+                   fecha_devolucion_esperada, estado_renta, hora_transaccion,
+                   tipo, id_renta)
+        cursor.execute(sql, valores)
+        conn.commit()
+        if cursor.rowcount > 0:
+            print("✅ Renta actualizada exitosamente.")
+        else:
+            print("⚠️ No se encontró una renta con ese ID.")
     except mysql.connector.Error as err:
-        print(f"❌ Error al verificar ID: {err}")
-        return False
+        print(f"❌ No se pudo actualizar la renta. Error: {err}")
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
+
+
+
 
 
 # CRUD Empleados

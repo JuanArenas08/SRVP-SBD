@@ -11,9 +11,9 @@ while True:
     print("=" * 50)
     
     print("\n¿Qué deseas hacer?")
-    print("1. Clientes")
-    print("2. Rentas")
-    print("3. Mostrar los videojuegos disponibles")
+    print("1. Administrar Clientes")
+    print("2. Administrar Rentas")
+    print("3. Administrar empleados")
     print("4. Mostrar las cuentas de playstationPlus disponibles")
     print("5. Mostrar rentas de un cliente")
     print("0. Salir")
@@ -26,7 +26,7 @@ while True:
     elif opcion == "2":
         rentas()
     elif opcion == "3":
-        mostrar_videojuegos()
+        menu_administrar_empleados()
     elif opcion =="4":
         mostrar_psPlus()
     elif opcion == "5":
