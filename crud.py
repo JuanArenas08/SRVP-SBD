@@ -629,3 +629,108 @@ def mostrar_multas():
         if 'conexion' in locals(): conexion.close()
 
     time.sleep(1.5)
+
+
+# CRUD TRANSACCIONES
+#AÑADIR TRANSACCION
+
+def agregar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Transaccion (ID, ID_Cliente, ID_Renta, fecha, hora, monto_total) "
+            "VALUES (%s, %s, %s, %s, %s, %s)",
+            (id, id_cliente, id_renta, fecha, hora, monto_total)
+        )
+        conexion.commit()
+        print("✅ Transacción agregada exitosamente.")
+    except mysql.connector.Error as error:
+        print(f"❌ Error al agregar la transacción: {error}")
+    finally:
+        cursor.close()
+        conexion.close()
+
+#ELIMINAR TRANSACCION
+def eliminar_transaccion(id):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        sql = "DELETE FROM Transaccion WHERE ID = %s"
+        cursor.execute(sql, (id,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            print("✅ Transacción eliminada exitosamente.")
+        else:
+            print("⚠️ No se encontró una transacción con ese ID.")
+    except mysql.connector.Error as err:
+        print(f"❌ Error al eliminar la transacción: {err}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+#ACTUALIZAR TRANSACCION
+def actualizar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        sql = """
+        UPDATE Transaccion
+        SET ID_Cliente = %s,
+            ID_Renta = %s,
+            fecha = %s,
+            hora = %s,
+            monto_total = %s
+        WHERE ID = %s
+        """
+        valores = (id_cliente, id_renta, fecha, hora, monto_total, id)
+        cursor.execute(sql, valores)
+        conn.commit()
+        if cursor.rowcount > 0:
+            print("✅ Transacción actualizada exitosamente.")
+        else:
+            print("⚠️ No se encontró una transacción con ese ID.")
+    except mysql.connector.Error as err:
+        print(f"❌ Error al actualizar la transacción: {err}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+#MOSTRAR TRANSACCION
+def mostrar_transacciones():
+    print("\n💰 Transacciones registradas:\n")
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        query = """
+        SELECT 
+            T.ID,
+            C.nombre_completo AS Nombre_Cliente,
+            T.ID_Renta,
+            T.fecha,
+            T.hora,
+            T.monto_total
+        FROM Transaccion T
+        JOIN Cliente C ON T.ID_Cliente = C.ID_Cliente
+        ORDER BY T.ID;
+        """
+
+        cursor.execute(query)
+        resultados = cursor.fetchall()
+        columnas = [desc[0] for desc in cursor.description]
+
+        if resultados:
+            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+        else:
+            print("No hay transacciones registradas.")
+
+    except mysql.connector.Error as err:
+        print(f"❌ Error al consultar la base de datos: {err}")
+
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+    time.sleep(1.5)
+

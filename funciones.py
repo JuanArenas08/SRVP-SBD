@@ -318,14 +318,39 @@ def clientes():
             actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono)
 
         elif opc == "4":
-            print("\nEliminar Cliente")
+            print("\n🗑️ Eliminar Cliente")
             id_cliente = input("Ingrese el ID del cliente a eliminar: ").strip()
 
-            confirmacion = input(f"¿Está seguro que desea eliminar el cliente con ID {id_cliente}? (s/n): ").strip().lower()
+            if not id_cliente.isdigit():
+                print("⚠️ El ID debe ser numérico.")
+                continue
+            if not id_existe("Cliente", "ID_Cliente", id_cliente):
+                print("⚠️ No existe un cliente con ese ID.")
+                continue
+
+            try:
+                conn = obtener_conexion()
+                cursor = conn.cursor()
+                cursor.execute("SELECT nombre_completo FROM Cliente WHERE ID_Cliente = %s", (id_cliente,))
+                resultado = cursor.fetchone()
+                if resultado:
+                    nombre_cliente = resultado[0]
+                else:
+                    print("❌ No se pudo obtener el nombre del cliente.")
+                    continue
+            except Exception as e:
+                print(f"❌ Error al consultar el cliente: {e}")
+                continue
+            finally:
+                if 'cursor' in locals(): cursor.close()
+                if 'conn' in locals(): conn.close()
+
+            confirmacion = input(f"¿Está seguro que desea eliminar al cliente: {nombre_cliente}? (s/n): ").strip().lower()
             if confirmacion == "s":
                 eliminar_cliente(id_cliente)
             else:
                 print("❌ Operación cancelada por el usuario.")
+
 
         elif opc == "0":
             print("Saliendo del menú de Clientes...")
@@ -636,14 +661,250 @@ def multas():
         elif opc == "4":
             print("\n🗑️ Eliminar Multa")
             id_multa = input("Ingrese el ID de la multa a eliminar: ").strip()
-            confirmacion = input(f"¿Está seguro que desea eliminar la multa con ID {id_multa}? (s/n): ").strip().lower()
+            if not id_multa.isdigit():
+                print("⚠️ El ID debe ser numérico.")
+                continue
+            if not id_existe("Multa", "ID_Multa", id_multa):
+                print("⚠️ No existe una multa con ese ID.")
+                continue
+
+            try:
+                conn = obtener_conexion()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT C.nombre_completo 
+                    FROM Multa M
+                    JOIN Cliente C ON M.ID_Cliente = C.ID_Cliente
+                    WHERE M.ID_Multa = %s
+                """, (id_multa,))
+                resultado = cursor.fetchone()
+                if resultado:
+                    nombre_cliente = resultado[0]
+                else:
+                    print("❌ No se pudo encontrar el cliente asociado a esta multa.")
+                    continue
+            except Exception as e:
+                print(f"❌ Error al consultar el cliente: {e}")
+                continue
+            finally:
+                if 'cursor' in locals(): cursor.close()
+                if 'conn' in locals(): conn.close()
+
+            confirmacion = input(f"¿Está seguro que desea eliminar la multa asociada a {nombre_cliente}? (s/n): ").strip().lower()
             if confirmacion == "s":
                 eliminar_multa(id_multa)
             else:
                 print("❌ Operación cancelada por el usuario.")
 
+
         elif opc == "0":
             print("Saliendo del menú de Multas...")
+            break
+
+        else:
+            print("⚠️ Opción no válida. Intente nuevamente.")
+
+
+def transacciones():
+    while True:
+        print("\n¿Qué deseas hacer en Transacciones?")
+        print("1️⃣  Añadir Transacción")
+        print("2️⃣  Mostrar todas las Transacciones")
+        print("3️⃣  Editar Transacción")
+        print("4️⃣  Eliminar Transacción")
+        print("0️⃣  Salir")
+        print("-" * 50)
+
+        opc = input("Seleccione una opción: ")
+
+        if opc == "1":
+            print("\n🆕 Ingreso de nueva transacción")
+
+            # ID de la transacción
+            while True:
+                id_transaccion = input("ID de la transacción: ").strip()
+                if not id_transaccion.isdigit():
+                    print("⚠️ El ID debe ser numérico.")
+                    continue
+                if id_existe("Transaccion", "ID", id_transaccion):
+                    print("⚠️ Ese ID ya existe.")
+                    continue
+                break
+
+            # Validar ID Cliente
+            while True:
+                id_cliente = input("ID del Cliente: ").strip()
+                if not id_cliente.isdigit() or not id_existe("Cliente", "ID_Cliente", id_cliente):
+                    print("⚠️ Cliente no válido.")
+                    continue
+
+                try:
+                    conn = obtener_conexion()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT nombre_completo FROM Cliente WHERE ID_Cliente = %s", (id_cliente,))
+                    cliente = cursor.fetchone()
+                    if cliente:
+                        print(f"➡️ Cliente encontrado: {cliente[0]}")
+                        confirmar = input("¿Desea continuar con este cliente? (s/n): ").strip().lower()
+                        if confirmar == "s":
+                            break
+                    else:
+                        print("❌ Cliente no encontrado.")
+                except Exception as e:
+                    print(f"❌ Error: {e}")
+                finally:
+                    if 'cursor' in locals(): cursor.close()
+                    if 'conn' in locals(): conn.close()
+
+            # Validar ID Renta
+            while True:
+                id_renta = input("ID de la Renta asociada: ").strip()
+                if not id_renta.isdigit() or not id_existe("Renta", "ID_Renta", id_renta):
+                    print("⚠️ Renta no válida.")
+                    continue
+
+                try:
+                    conn = obtener_conexion()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT Tipo FROM Renta WHERE ID_Renta = %s", (id_renta,))
+                    tipo = cursor.fetchone()
+                    if tipo:
+                        print(f"➡️ Tipo de renta: {tipo[0]}")
+                        confirmar = input("¿Desea continuar con esta renta? (s/n): ").strip().lower()
+                        if confirmar == "s":
+                            break
+                    else:
+                        print("❌ Renta no encontrada.")
+                except Exception as e:
+                    print(f"❌ Error: {e}")
+                finally:
+                    if 'cursor' in locals(): cursor.close()
+                    if 'conn' in locals(): conn.close()
+
+            # Fecha
+            while True:
+                fecha = input("Fecha (YYYY-MM-DD): ").strip()
+                try:
+                    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+                    break
+                except ValueError:
+                    print("⚠️ Fecha inválida. Formato correcto: YYYY-MM-DD.")
+
+            #Hora
+            # Validar hora
+            while True:
+                hora_transaccion = input("Nueva Hora transacción (HHMM): ").strip()
+                if not hora_transaccion.isdigit() or len(hora_transaccion) != 4:
+                    print("⚠️ Hora inválida.")
+                else:
+                    break
+            # Monto total
+            while True:
+                monto = input("Monto total de la transacción: ").strip()
+                if not monto.isdigit() or int(monto) <= 0:
+                    print("⚠️ Ingrese un monto válido (mayor a 0).")
+                else:
+                    break
+
+            agregar_transaccion(id_transaccion, id_cliente, id_renta, fecha, hora_transaccion, int(monto))
+
+        elif opc == "2":
+            mostrar_transacciones()
+
+        elif opc == "3":
+            print("\n✏️ Editar transacción existente")
+
+            id_transaccion = input("ID de la transacción a editar: ").strip()
+            if not id_transaccion.isdigit() or not id_existe("Transaccion", "ID", id_transaccion):
+                print("❌ No existe una transacción con ese ID.")
+                continue
+
+            try:
+                conn = obtener_conexion()
+                cursor = conn.cursor()
+                cursor.execute("SELECT ID_Cliente, ID_Renta FROM Transaccion WHERE ID = %s", (id_transaccion,))
+                resultado = cursor.fetchone()
+                if resultado:
+                    id_cliente, id_renta = resultado
+                else:
+                    print("❌ No se pudo recuperar los datos de la transacción.")
+                    continue
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                continue
+            finally:
+                if 'cursor' in locals(): cursor.close()
+                if 'conn' in locals(): conn.close()
+
+            # Fecha
+            while True:
+                fecha = input("Nueva fecha (YYYY-MM-DD): ").strip()
+                try:
+                    datetime.strptime(fecha, "%Y-%m-%d")
+                    break
+                except ValueError:
+                    print("⚠️ Fecha inválida. Usa el formato YYYY-MM-DD.")
+
+            # Hora
+            # Validar hora
+            while True:
+                hora = input("Nueva Hora transacción (HHMM): ").strip()
+                if not hora.isdigit() or len(hora) != 4:
+                    print("⚠️ Hora inválida.")
+                else:
+                    break
+
+            # Monto
+            while True:
+                monto = input("Nuevo monto total: ").strip()
+                if not monto.isdigit() or int(monto) <= 0:
+                    print("⚠️ Ingrese un monto válido.")
+                else:
+                    break
+
+            actualizar_transaccion(id_transaccion, id_cliente, id_renta, fecha, hora, int(monto))
+
+        elif opc == "4":
+            print("\n🗑️ Eliminar transacción")
+            id_transaccion = input("Ingrese el ID de la transacción a eliminar: ").strip()
+            if not id_transaccion.isdigit():
+                print("⚠️ El ID debe ser numérico.")
+                continue
+            if not id_existe("Transaccion", "ID", id_transaccion):
+                print("⚠️ No existe una transacción con ese ID.")
+                continue
+
+            try:
+                conn = obtener_conexion()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT C.nombre_completo 
+                    FROM Transaccion T 
+                    JOIN Cliente C ON T.ID_Cliente = C.ID_Cliente 
+                    WHERE T.ID = %s
+                """, (id_transaccion,))
+                resultado = cursor.fetchone()
+                if resultado:
+                    nombre_cliente = resultado[0]
+                else:
+                    print("❌ No se pudo encontrar el cliente asociado a esta transacción.")
+                    continue
+            except Exception as e:
+                print(f"❌ Error al consultar el cliente: {e}")
+                continue
+            finally:
+                if 'cursor' in locals(): cursor.close()
+                if 'conn' in locals(): conn.close()
+
+            confirmacion = input(f"¿Está seguro que desea eliminar la transacción asociada a {nombre_cliente}? (s/n): ").strip().lower()
+            if confirmacion == "s":
+                eliminar_transaccion(id_transaccion)
+            else:
+                print("❌ Operación cancelada.")
+
+
+        elif opc == "0":
+            print("Saliendo del menú de Transacciones...")
             break
 
         else:

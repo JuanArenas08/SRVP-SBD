@@ -15,7 +15,7 @@ while True:
     print("2. Administrar Rentas")
     print("3. Administrar empleados")
     print("4. Mostrar las cuentas de playstationPlus disponibles")
-    print("5. Administrar ...5")
+    print("5. Administrar Transacciones")
     print("6. Administrar Multas")
     print("0. Salir")
     print("-" * 50)
@@ -31,7 +31,7 @@ while True:
     elif opcion =="4":
         mostrar_psPlus()
     elif opcion == "5":
-        asd
+        transacciones()
     elif opcion == "6":
         multas()
     elif opcion == "0":
