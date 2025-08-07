@@ -469,4 +469,3 @@ def menu_administrar_empleados():
 
         input("\nPresiona Enter para continuar...")
 
-
