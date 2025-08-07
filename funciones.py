@@ -227,7 +227,7 @@ def rentas():
             id_renta = input("Ingrese el ID de la renta a eliminar: ").strip()
             confirmacion = input(f"¿Está seguro que desea eliminar la renta con ID {id_renta}? (s/n): ").strip().lower()
             if confirmacion == "s":
-                eliminar_multa(id_renta)
+                eliminar_renta(id_renta)
             else:
                 print("❌ Operación cancelada por el usuario.")
         elif opc == "5":
@@ -867,9 +867,11 @@ def transacciones():
         elif opc == "4":
             print("\n🗑️ Eliminar transacción")
             id_transaccion = input("Ingrese el ID de la transacción a eliminar: ").strip()
+
             if not id_transaccion.isdigit():
                 print("⚠️ El ID debe ser numérico.")
                 continue
+
             if not id_existe("Transaccion", "ID", id_transaccion):
                 print("⚠️ No existe una transacción con ese ID.")
                 continue
@@ -896,11 +898,16 @@ def transacciones():
                 if 'cursor' in locals(): cursor.close()
                 if 'conn' in locals(): conn.close()
 
-            confirmacion = input(f"¿Está seguro que desea eliminar la transacción asociada a {nombre_cliente}? (s/n): ").strip().lower()
-            if confirmacion == "s":
-                eliminar_transaccion(id_transaccion)
-            else:
+            confirmacion = input(
+                f"⚠️ Esto eliminará la transacción y sus relaciones con otras tablas (si las hay).\n"
+                f"¿Está seguro que desea eliminar la transacción asociada a {nombre_cliente}? (s/n): "
+            ).strip().lower()
+
+            if confirmacion != "s":
                 print("❌ Operación cancelada.")
+                continue
+            eliminar_transaccion(id_transaccion)
+
 
 
         elif opc == "0":

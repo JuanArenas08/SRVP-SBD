@@ -652,22 +652,47 @@ def agregar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
         conexion.close()
 
 #ELIMINAR TRANSACCION
-def eliminar_transaccion(id):
+def eliminar_transaccion(id_transaccion):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = "DELETE FROM Transaccion WHERE ID = %s"
-        cursor.execute(sql, (id,))
+
+        # Intentar eliminar directamente la transacción
+        cursor.execute("DELETE FROM Transaccion WHERE ID = %s", (id_transaccion,))
         conn.commit()
-        if cursor.rowcount > 0:
-            print("✅ Transacción eliminada exitosamente.")
-        else:
-            print("⚠️ No se encontró una transacción con ese ID.")
-    except mysql.connector.Error as err:
-        print(f"❌ Error al eliminar la transacción: {err}")
+
+        print("✅ Transacción eliminada exitosamente.")
+
+    except Exception as e:
+        # Forzar eliminación si hay claves foráneas (borrar desde otras tablas primero)
+        print("⚠️ No se pudo eliminar directamente. Intentando forzar eliminación...")
+        try:
+            # Buscar todas las tablas que referencian a Transaccion.ID
+            cursor.execute("""
+                SELECT TABLE_NAME, COLUMN_NAME
+                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                WHERE REFERENCED_TABLE_NAME = 'Transaccion'
+                  AND REFERENCED_COLUMN_NAME = 'ID'
+                  AND TABLE_SCHEMA = 'srvp';
+            """)
+            relaciones = cursor.fetchall()
+
+            for tabla, columna in relaciones:
+                print(f"🔄 Eliminando registros de {tabla} donde {columna} = {id_transaccion}...")
+                cursor.execute(f"DELETE FROM {tabla} WHERE {columna} = %s", (id_transaccion,))
+
+            # Ahora sí eliminar la transacción
+            cursor.execute("DELETE FROM Transaccion WHERE ID = %s", (id_transaccion,))
+            conn.commit()
+            print("✅ Transacción forzada y eliminada correctamente.")
+
+        except Exception as e2:
+            print(f"❌ No se pudo forzar la eliminación: {e2}")
+
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
+
 
 #ACTUALIZAR TRANSACCION
 def actualizar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
