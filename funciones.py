@@ -88,6 +88,174 @@ def rentas():
         else:
             print("Opción no válida. Intente nuevamente...")
 
+def rentas():
+    while True:
+        print("\n¿Qué deseas hacer en Rentas?")
+        print("1️⃣  Añadir Renta")
+        print("2️⃣  Mostrar todas las Rentas")
+        print("3️⃣  Editar Renta")
+        print("4️⃣  Eliminar Renta")
+        print("0️⃣  Salir")
+        print("-" * 50)
+
+        opc = input("Seleccione una opción: ")
+
+        if opc == "1":
+            print("\nIngrese los datos para agregar una nueva Renta:")
+
+            # ✅ Validar ID_Renta único
+            while True:
+                id_renta = input("ID Renta: ").strip()
+                if not id_renta.isdigit():
+                    print("⚠️ El ID debe ser un número.")
+                    continue
+                if id_existe("Renta", "ID_Renta", id_renta):
+                    print("⚠️ Ese ID ya existe.")
+                    continue
+                break
+
+            # ✅ Validar ID_Empleado
+            while True:
+                id_empleado = input("ID Empleado: ").strip()
+                if not id_empleado.isdigit() or not id_existe("Empleado", "ID_Empleado", id_empleado):
+                    print("⚠️ Empleado no válido.")
+                else:
+                    break
+
+            # ✅ Validar fechas
+            def validar_fecha(mensaje, fecha_minima=None):
+                while True:
+                    fecha = input(mensaje).strip()
+                    try:
+                        fecha_dt = datetime.strptime(fecha, "%Y-%m-%d")
+
+                        if fecha_minima and fecha_dt < fecha_minima:
+                            print(f"⚠️ La fecha no puede ser anterior a {fecha_minima.strftime('%Y-%m-%d')}.")
+                            continue
+
+                        return fecha
+                    except ValueError:
+                        print("⚠️ Formato inválido (use YYYY-MM-DD).")
+
+            # Primero se valida la fecha de inicio
+            fecha_inicio_str = validar_fecha("Fecha de inicio (YYYY-MM-DD): ")
+            fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d")
+
+            # Luego se validan las otras dos, usando la fecha de inicio como mínimo
+            fecha_devolucion_esperada = validar_fecha("Fecha devolución esperada (YYYY-MM-DD): ", fecha_inicio)
+            fecha_devolucion_real = validar_fecha("Fecha devolución real (YYYY-MM-DD): ", fecha_inicio)
+
+            # ✅ Validar estado
+            estados = ["Activo", "Finalizado", "Atrasada"]
+            while True:
+                estado_renta = input("Estado (Activo/Finalizado/Atrasada): ").strip().capitalize()
+                if estado_renta not in estados:
+                    print("⚠️ Estado inválido.")
+                else:
+                    break
+
+            # ✅ Validar hora
+            while True:
+                hora_transaccion = input("Hora transacción (HHMM): ").strip()
+                if not hora_transaccion.isdigit() or len(hora_transaccion) != 4:
+                    print("⚠️ Hora inválida.")
+                else:
+                    break
+
+            # ✅ Validar tipo
+            tipos = ["PS PLUS", "VIDEOJUEGO"]
+            while True:
+                tipo = input("Tipo (PS PLUS / VIDEOJUEGO): ").strip().upper()
+                if tipo not in tipos:
+                    print("⚠️ Tipo inválido.")
+                else:
+                    break
+
+            agregar_renta(id_renta, id_empleado, fecha_inicio,
+                          fecha_devolucion_real, fecha_devolucion_esperada,
+                          estado_renta, hora_transaccion, tipo)
+
+        elif opc == "2":
+            mostrar_rentas()
+
+        elif opc == "3":
+            print("\n✏️ Editar Renta Existente")
+
+            id_renta = input("Ingrese el ID de la renta a editar: ").strip()
+            if not id_renta.isdigit() or not id_existe("Renta", "ID_Renta", id_renta):
+                print("❌ No existe una renta con ese ID.")
+                return
+
+            # Validar nuevo ID de Empleado
+            while True:
+                id_empleado = input("Nuevo ID Empleado: ").strip()
+                if not id_empleado.isdigit() or not id_existe("Empleado", "ID_Empleado", id_empleado):
+                    print("⚠️ Empleado no válido.")
+                else:
+                    break
+
+            # Validar fechas
+            def validar_fecha(mensaje):
+                while True:
+                    fecha = input(mensaje).strip()
+                    try:
+                        return datetime.strptime(fecha, "%Y-%m-%d").date()
+                    except ValueError:
+                        print("⚠️ Formato inválido. Usa YYYY-MM-DD.")
+
+            while True:
+                fecha_inicio = validar_fecha("Nueva Fecha de inicio (YYYY-MM-DD): ")
+                fecha_devolucion_esperada = validar_fecha("Nueva Fecha devolución esperada (YYYY-MM-DD): ")
+                fecha_devolucion_real = validar_fecha("Nueva Fecha devolución real (YYYY-MM-DD): ")
+
+                if fecha_devolucion_esperada < fecha_inicio or fecha_devolucion_real < fecha_inicio:
+                    print("⚠️ Las fechas de devolución no pueden ser anteriores a la fecha de inicio.")
+                else:
+                    break
+
+            # Validar estado
+            estados = ["Activo", "Finalizado", "Atrasada"]
+            while True:
+                estado_renta = input("Nuevo Estado (Activo/Finalizado/Atrasada): ").strip().capitalize()
+                if estado_renta not in estados:
+                    print("⚠️ Estado inválido.")
+                else:
+                    break
+
+            # Validar hora
+            while True:
+                hora_transaccion = input("Nueva Hora transacción (HHMM): ").strip()
+                if not hora_transaccion.isdigit() or len(hora_transaccion) != 4:
+                    print("⚠️ Hora inválida.")
+                else:
+                    break
+
+            # Validar tipo
+            tipos = ["PS PLUS", "VIDEOJUEGO"]
+            while True:
+                tipo = input("Nuevo Tipo (PS PLUS / VIDEOJUEGO): ").strip().upper()
+                if tipo not in tipos:
+                    print("⚠️ Tipo inválido.")
+                else:
+                    break
+
+            actualizar_renta(id_renta, id_empleado, fecha_inicio.strftime("%Y-%m-%d"),
+                            fecha_devolucion_real.strftime("%Y-%m-%d"),
+                            fecha_devolucion_esperada.strftime("%Y-%m-%d"),
+                            estado_renta, hora_transaccion, tipo)
+
+
+        elif opc == "4":
+            print("\nEliminar Renta")
+            id_renta = input("Ingrese el ID de la renta a eliminar: ").strip()
+            eliminar_renta(id_renta)
+
+        elif opc == "0":
+            print("Saliendo del menú de Rentas...")
+            break
+
+        else:
+            print("Opción no válida. Intente nuevamente...")
 
 
 def clientes():
@@ -275,25 +443,25 @@ def mostrar_rentas_por_cliente():
 
 # Submenú de la opción para administrar empleados 
 
-def menu_administrar_clientes():
+def menu_administrar_empleados():
     while True:
-        print("\n🛠️ Submenú - Administración de Clientes")
-        print("1. Mostrar clientes")
-        print("2. Editar cliente")
-        print("3. Eliminar cliente")
-        print("4. Crear cliente")
+        print("\n🛠️ Submenú - Administración de Empleados")
+        print("1. Agregar empleado")
+        print("2. Mostrar empleados")
+        print("3. Editar empleado")
+        print("4. Borrar empleado")
         print("0. Volver al menú principal")
 
         subop = input("Selecciona una opción: ").strip()
 
         if subop == "1":
-            submenu_mostrar_clientes()
+            crear_empleado()
         elif subop == "2":
-            editar_cliente()
+            mostrar_empleados()
         elif subop == "3":
-            eliminar_cliente()
+            editar_empleado()
         elif subop == "4":
-            crear_cliente()
+            eliminar_empleado()
         elif subop == "0":
             break
         else:
