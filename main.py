@@ -15,7 +15,8 @@ while True:
     print("2. Administrar Rentas")
     print("3. Administrar empleados")
     print("4. Mostrar las cuentas de playstationPlus disponibles")
-    print("5. Mostrar rentas de un cliente")
+    print("5. Administrar ...5")
+    print("6. Administrar Multas")
     print("0. Salir")
     print("-" * 50)
 
@@ -30,7 +31,9 @@ while True:
     elif opcion =="4":
         mostrar_psPlus()
     elif opcion == "5":
-        mostrar_rentas_por_cliente()
+        asd
+    elif opcion == "6":
+        multas()
     elif opcion == "0":
         print("\n👋 ¡Gracias por usar SRVP! Hasta pronto.")
         break

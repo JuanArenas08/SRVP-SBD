@@ -515,3 +515,117 @@ def eliminar_metodo_pago(id_pago):
         if conexion.is_connected():
             cursor.close()
             conexion.close()
+
+
+
+#CRUD MULTAS
+
+#AÑADIR MULTA
+
+def agregar_multa(id_multa, id_cliente, id_renta, fecha_inicio,
+                  fecha_fin, motivo, monto):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Multa (ID_Multa, ID_Cliente, ID_Renta, fecha_inicio, fecha_fin, motivo, monto) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (id_multa, id_cliente, id_renta, fecha_inicio, fecha_fin, motivo, monto)
+        )
+        conexion.commit()
+        print("✅ Multa agregada exitosamente.")
+    except mysql.connector.Error as error:
+        print(f"❌ Error al agregar la multa: {error}")
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+#ELIMINAR MULTA 
+def eliminar_multa(id_multa):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        sql = "DELETE FROM Multa WHERE ID_Multa = %s"
+        cursor.execute(sql, (id_multa,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            print("✅ Multa eliminada exitosamente.")
+        else:
+            print("⚠️ No se encontró una multa con ese ID.")
+    except mysql.connector.Error as err:
+        print(f"❌ No se ha podido eliminar la multa. Error: {err}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+#ACTUALIZAR MULTA
+def actualizar_multa(id_multa, id_cliente, id_renta, fecha_inicio,
+                     fecha_fin, motivo, monto):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        sql = """
+        UPDATE Multa
+        SET ID_Cliente = %s,
+            ID_Renta = %s,
+            fecha_inicio = %s,
+            fecha_fin = %s,
+            motivo = %s,
+            monto = %s
+        WHERE ID_Multa = %s
+        """
+        valores = (id_cliente, id_renta, fecha_inicio, fecha_fin, motivo, monto, id_multa)
+        cursor.execute(sql, valores)
+        conn.commit()
+        if cursor.rowcount > 0:
+            print("✅ Multa actualizada exitosamente.")
+        else:
+            print("⚠️ No se encontró una multa con ese ID.")
+    except mysql.connector.Error as err:
+        print(f"❌ No se pudo actualizar la multa. Error: {err}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+
+#MOSTRAR MULTA
+def mostrar_multas():
+    print("\n🧾 Multas registradas:\n")
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        query = """
+        SELECT 
+            Multa.ID_Multa,
+            Cliente.nombre_completo AS Nombre_Cliente,
+            Multa.ID_Renta,
+            Multa.fecha_inicio,
+            Multa.fecha_fin,
+            Multa.motivo,
+            Multa.monto
+        FROM Multa
+        JOIN Cliente ON Multa.ID_Cliente = Cliente.ID_Cliente
+        ORDER BY Multa.ID_Multa;
+        """
+
+
+        cursor.execute(query)
+        resultados = cursor.fetchall()
+        columnas = [desc[0] for desc in cursor.description]
+
+        if resultados:
+            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+        else:
+            print("No hay multas registradas.")
+
+    except mysql.connector.Error as err:
+        print("❌ Error al conectar o consultar la base de datos:", err)
+
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+    time.sleep(1.5)

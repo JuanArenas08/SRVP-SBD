@@ -63,30 +63,6 @@ def mostrar_rentas_por_cliente():
     time.sleep(1.5)
 
 
-def rentas():
-    while True:
-        print("\n¿Qué deseas hacer en Rentas?")
-        print("1️⃣  Añadir Rentas")
-        print("2️⃣  Mostrar todas las rentas")
-        print("3️⃣  Editar Rentas Existentes")
-        print("4️⃣  Eliminar Rentas Existentes")
-        print("0️⃣  Salir")
-        print("-" * 50)
-
-        opc = input ("Seleccione una opción: ")
-        if opc == "1":
-            print("asd")
-        elif opc == "2":
-            mostrar_rentas()
-        elif opc == "3":
-            mostrar_rentas
-        elif opc == "4":
-            mostrar_rentas
-        elif opc == "0":
-            print("Saliendo del menú de Rentas...")
-            break
-        else:
-            print("Opción no válida. Intente nuevamente...")
 
 def rentas():
     while True:
@@ -95,6 +71,7 @@ def rentas():
         print("2️⃣  Mostrar todas las Rentas")
         print("3️⃣  Editar Renta")
         print("4️⃣  Eliminar Renta")
+        print(" 5  Mostrar Renta de un cliente")
         print("0️⃣  Salir")
         print("-" * 50)
 
@@ -248,7 +225,13 @@ def rentas():
         elif opc == "4":
             print("\nEliminar Renta")
             id_renta = input("Ingrese el ID de la renta a eliminar: ").strip()
-            eliminar_renta(id_renta)
+            confirmacion = input(f"¿Está seguro que desea eliminar la renta con ID {id_renta}? (s/n): ").strip().lower()
+            if confirmacion == "s":
+                eliminar_multa(id_renta)
+            else:
+                print("❌ Operación cancelada por el usuario.")
+        elif opc == "5":
+            mostrar_rentas_por_cliente()
 
         elif opc == "0":
             print("Saliendo del menú de Rentas...")
@@ -337,7 +320,12 @@ def clientes():
         elif opc == "4":
             print("\nEliminar Cliente")
             id_cliente = input("Ingrese el ID del cliente a eliminar: ").strip()
-            eliminar_cliente(id_cliente)
+
+            confirmacion = input(f"¿Está seguro que desea eliminar el cliente con ID {id_cliente}? (s/n): ").strip().lower()
+            if confirmacion == "s":
+                eliminar_cliente(id_cliente)
+            else:
+                print("❌ Operación cancelada por el usuario.")
 
         elif opc == "0":
             print("Saliendo del menú de Clientes...")
@@ -469,3 +457,194 @@ def menu_administrar_empleados():
 
         input("\nPresiona Enter para continuar...")
 
+def multas():
+    while True:
+        print("\n¿Qué deseas hacer en Multas?")
+        print("1️⃣  Añadir Multa")
+        print("2️⃣  Mostrar todas las Multas")
+        print("3️⃣  Editar Multa")
+        print("4️⃣  Eliminar Multa")
+        print("0️⃣  Salir")
+        print("-" * 50)
+
+        opc = input("Seleccione una opción: ")
+
+        if opc == "1":
+            print("\nIngrese los datos para agregar una nueva Multa:")
+
+            # Validar ID_Multa único
+            while True:
+                id_multa = input("ID Multa: ").strip()
+                if not id_multa.isdigit():
+                    print("⚠️ El ID debe ser un número.")
+                    continue
+                if id_existe("Multa", "ID_Multa", id_multa):
+                    print("⚠️ Ese ID ya existe.")
+                    continue
+                break
+
+            # Validar ID_Cliente y mostrar confirmación inmediatamente
+            while True:
+                id_cliente = input("ID Cliente: ").strip()
+                if not id_cliente.isdigit() or not id_existe("Cliente", "ID_Cliente", id_cliente):
+                    print("⚠️ Cliente no válido.")
+                    continue
+
+                try:
+                    conn = obtener_conexion()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT nombre_completo FROM Cliente WHERE ID_Cliente = %s", (id_cliente,))
+                    cliente = cursor.fetchone()
+
+                    if cliente:
+                        print(f"➡️ Cliente encontrado: {cliente[0]}")
+                        confirmar_cliente = input("¿Desea continuar con este cliente? (s/n): ").strip().lower()
+                        if confirmar_cliente == 's':
+                            break
+                        else:
+                            print("❌ Cliente cancelado. Ingrese otro ID.")
+                    else:
+                        print("❌ Cliente no encontrado.")
+
+                except mysql.connector.Error as err:
+                    print(f"❌ Error al consultar cliente: {err}")
+                finally:
+                    if 'cursor' in locals(): cursor.close()
+                    if 'conn' in locals(): conn.close()
+
+            # Validar ID_Renta y mostrar verificación de la renta
+            while True:
+                id_renta = input("ID Renta asociada: ").strip()
+                if not id_renta.isdigit() or not id_existe("Renta", "ID_Renta", id_renta):
+                    print("⚠️ Renta no válida.")
+                    continue
+
+                try:
+                    conn = obtener_conexion()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT Tipo FROM Renta WHERE ID_Renta = %s", (id_renta,))
+                    renta = cursor.fetchone()
+
+                    if renta:
+                        print(f"➡️ Tipo de Renta: {renta[0]}")
+                        confirmar_renta = input("¿Desea continuar con esta renta? (s/n): ").strip().lower()
+                        if confirmar_renta == 's':
+                            break
+                        else:
+                            print("❌ Renta cancelada. Ingrese otro ID.")
+                    else:
+                        print("❌ Renta no encontrada.")
+
+                except mysql.connector.Error as err:
+                    print(f"❌ Error al consultar renta: {err}")
+                finally:
+                    if 'cursor' in locals(): cursor.close()
+                    if 'conn' in locals(): conn.close()
+
+            # Validar fechas
+            def validar_fecha(mensaje):
+                while True:
+                    fecha = input(mensaje).strip()
+                    try:
+                        return datetime.strptime(fecha, "%Y-%m-%d").date()
+                    except ValueError:
+                        print("⚠️ Formato inválido. Usa YYYY-MM-DD.")
+
+            fecha_inicio = validar_fecha("Fecha de inicio (YYYY-MM-DD): ")
+            fecha_fin = validar_fecha("Fecha de fin (YYYY-MM-DD): ")
+
+            if fecha_fin < fecha_inicio:
+                print("⚠️ La fecha de fin no puede ser anterior a la de inicio.")
+                continue
+
+            # Motivo
+            motivo = input("Motivo de la multa: ").strip().title()
+
+            # Monto
+            while True:
+                monto = input("Monto de la multa: ").strip()
+                if not monto.isdigit() or int(monto) <= 0:
+                    print("⚠️ Ingrese un monto válido (mayor a 0).")
+                else:
+                    break
+
+            agregar_multa(id_multa, id_cliente, id_renta, fecha_inicio.strftime("%Y-%m-%d"),
+                        fecha_fin.strftime("%Y-%m-%d"), motivo, int(monto))
+
+
+
+        elif opc == "2":
+            mostrar_multas()
+
+        elif opc == "3":
+            print("\n✏️ Editar Multa Existente")
+
+            id_multa = input("Ingrese el ID de la multa a editar: ").strip()
+            if not id_multa.isdigit() or not id_existe("Multa", "ID_Multa", id_multa):
+                print("❌ No existe una multa con ese ID.")
+                continue
+
+            # 🔍 Obtener ID_Cliente e ID_Renta actuales desde la base de datos
+            try:
+                conn = obtener_conexion()
+                cursor = conn.cursor()
+                cursor.execute("SELECT ID_Cliente, ID_Renta FROM Multa WHERE ID_Multa = %s", (id_multa,))
+                resultado = cursor.fetchone()
+                if resultado:
+                    id_cliente, id_renta = resultado
+                else:
+                    print("❌ No se pudo recuperar los datos de la multa.")
+                    return
+            except mysql.connector.Error as err:
+                print(f"❌ Error al recuperar información de la multa: {err}")
+                return
+            finally:
+                if 'cursor' in locals(): cursor.close()
+                if 'conn' in locals(): conn.close()
+
+            # Validar fechas
+            def validar_fecha(mensaje):
+                while True:
+                    fecha = input(mensaje).strip()
+                    try:
+                        return datetime.strptime(fecha, "%Y-%m-%d").date()
+                    except ValueError:
+                        print("⚠️ Formato inválido. Usa YYYY-MM-DD.")
+
+            while True:
+                fecha_inicio = validar_fecha("Nueva Fecha de inicio (YYYY-MM-DD): ")
+                fecha_fin = validar_fecha("Nueva Fecha de fin (YYYY-MM-DD): ")
+                if fecha_fin < fecha_inicio:
+                    print("⚠️ La fecha de fin no puede ser anterior a la de inicio.")
+                else:
+                    break
+
+            motivo = input("Nuevo motivo de la multa: ").strip().title()
+
+            while True:
+                monto = input("Nuevo monto de la multa: ").strip()
+                if not monto.isdigit() or int(monto) <= 0:
+                    print("⚠️ Ingrese un monto válido.")
+                else:
+                    break
+
+            actualizar_multa(id_multa, id_cliente, id_renta,
+                             fecha_inicio.strftime("%Y-%m-%d"),
+                             fecha_fin.strftime("%Y-%m-%d"),
+                             motivo, int(monto))
+
+        elif opc == "4":
+            print("\n🗑️ Eliminar Multa")
+            id_multa = input("Ingrese el ID de la multa a eliminar: ").strip()
+            confirmacion = input(f"¿Está seguro que desea eliminar la multa con ID {id_multa}? (s/n): ").strip().lower()
+            if confirmacion == "s":
+                eliminar_multa(id_multa)
+            else:
+                print("❌ Operación cancelada por el usuario.")
+
+        elif opc == "0":
+            print("Saliendo del menú de Multas...")
+            break
+
+        else:
+            print("⚠️ Opción no válida. Intente nuevamente.")
