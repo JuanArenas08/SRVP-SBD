@@ -184,3 +184,157 @@ def id_cliente_existe(id_cliente):
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
+
+
+# CRUD Empleados
+
+# Agregar empleado
+def crear_empleado():
+    print("\n👤 Agregar nuevo empleado:")
+
+    try:
+        id_empleado = input("ID del empleado (ej: 12): ").strip()
+        nombre = input("Nombre del empleado (ej: Leonardo Cardoso): ").strip()
+        rol = input("Rol del empleado (ej: Vendedor): ").strip()
+
+        # Validación básica
+        if not id_empleado.isdigit():
+            print("❌ El ID debe ser un número.")
+            return
+        if not nombre or not rol:
+            print("❌ Nombre y rol son obligatorios.")
+            return
+
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        # Verificar si el ID ya existe
+        cursor.execute("SELECT * FROM Empleado WHERE ID_Empleado = %s", (id_empleado,))
+        if cursor.fetchone():
+            print("⚠️ Ya existe un empleado con ese ID.")
+            return
+
+        query = "INSERT INTO Empleado (ID_Empleado, nombre, rol) VALUES (%s, %s, %s)"
+        cursor.execute(query, (int(id_empleado), nombre, rol))
+        conexion.commit()
+
+        print("✅ Empleado agregado exitosamente.")
+
+        cursor.execute("SELECT * FROM Empleado")
+        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print("❌ Error al agregar el empleado:", err)
+
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+
+# Mostrar empleados
+
+def mostrar_empleados():
+    print("\n📋 Lista de empleados:")
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM Empleado")
+        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print("❌ Error al consultar empleados:", err)
+
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+# Editar empleado
+
+def editar_empleado():
+    print("\n✏️ Editar empleado:")
+    nombre = input("Ingrese el nombre del empleado a editar: ").strip()
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        cursor.execute("SELECT * FROM Empleado WHERE nombre = %s", (nombre,))
+        empleado = cursor.fetchone()
+
+        if not empleado:
+            print("❌ Empleado no encontrado.")
+            return
+
+        print(tabulate([empleado], headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+
+        nuevo_nombre = input("Nuevo nombre (dejar en blanco para no cambiar): ").strip()
+        nuevo_rol = input("Nuevo rol (dejar en blanco para no cambiar): ").strip()
+
+        campos = []
+        valores = []
+
+        if nuevo_nombre:
+            campos.append("nombre = %s")
+            valores.append(nuevo_nombre)
+        if nuevo_rol:
+            campos.append("rol = %s")
+            valores.append(nuevo_rol)
+
+        if not campos:
+            print("⚠️ No se realizaron cambios.")
+            return
+
+        valores.append(nombre)  # Para el WHERE
+        query = f"UPDATE Empleado SET {', '.join(campos)} WHERE nombre = %s"
+        cursor.execute(query, tuple(valores))
+        conexion.commit()
+
+        print("✅ Empleado actualizado.")
+        cursor.execute("SELECT * FROM Empleado")
+        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print("❌ Error al editar empleado:", err)
+
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+
+# Eliminar empleado
+
+def eliminar_empleado():
+    print("\n🗑️ Eliminar empleado:")
+    nombre = input("Ingrese el nombre del empleado a eliminar: ").strip()
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        cursor.execute("SELECT * FROM Empleado WHERE nombre = %s", (nombre,))
+        empleado = cursor.fetchone()
+
+        if not empleado:
+            print("❌ Empleado no encontrado.")
+            return
+
+        print(tabulate([empleado], headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+
+        confirmar = input("¿Está seguro que desea eliminar este empleado? (s/n): ").strip().lower()
+        if confirmar != "s":
+            print("❌ Operación cancelada.")
+            return
+
+        cursor.execute("DELETE FROM Empleado WHERE nombre = %s", (nombre,))
+        conexion.commit()
+
+        print("✅ Empleado eliminado.")
+        cursor.execute("SELECT * FROM Empleado")
+        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print("❌ Error al eliminar empleado:", err)
+
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()

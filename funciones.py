@@ -273,4 +273,32 @@ def mostrar_rentas_por_cliente():
 
     time.sleep(1.5)
 
+# Submenú de la opción para administrar empleados 
+
+def menu_administrar_clientes():
+    while True:
+        print("\n🛠️ Submenú - Administración de Clientes")
+        print("1. Mostrar clientes")
+        print("2. Editar cliente")
+        print("3. Eliminar cliente")
+        print("4. Crear cliente")
+        print("0. Volver al menú principal")
+
+        subop = input("Selecciona una opción: ").strip()
+
+        if subop == "1":
+            submenu_mostrar_clientes()
+        elif subop == "2":
+            editar_cliente()
+        elif subop == "3":
+            eliminar_cliente()
+        elif subop == "4":
+            crear_cliente()
+        elif subop == "0":
+            break
+        else:
+            print("❌ Opción inválida.")
+
+        input("\nPresiona Enter para continuar...")
+
 
