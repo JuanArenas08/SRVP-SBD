@@ -1,26 +1,24 @@
 import mysql.connector
-import time
+from conexion import *
 from tabulate import tabulate
-#from funciones import obtener_conexion
+import time
 #CONECTAMOS A LA BASE DE DATOS
 
-def conectar():
-    return mysql.connector.connect(
-        user="root",
-        password="asdasd",
-        host="localhost",
-        database="srvp",
-        port=3306
-    )
-
-
+#def conectar():
+#    return mysql.connector.connect(
+#        user="root",
+#        password="admin",
+#        host="hostname",
+#        database="srvp",
+#        port=3306
+#    )
 
 #CRUD CLIENTE
 #AÑADIR
 
 def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         sql = """
         INSERT INTO Cliente (ID_Cliente, email, historial, nombre_completo, telefono)
@@ -40,7 +38,7 @@ def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
 '''
 def mostrar_clientes():
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Cliente")
         resultados = cursor.fetchall()
@@ -59,7 +57,7 @@ def mostrar_clientes():
 def mostrar_clientes():
     print("\n👥 Lista de Clientes Registrados:")
     try:
-        conexion = conectar()  # ✅
+        conexion = obtener_conexion()  # ✅
         cursor = conexion.cursor()
         cursor.execute("SELECT * FROM Cliente")
         resultados = cursor.fetchall()
@@ -82,7 +80,7 @@ def mostrar_clientes():
 
 def actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         sql = """
         UPDATE Cliente
@@ -109,7 +107,7 @@ def actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono):
 
 def eliminar_cliente(id_cliente):
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         sql = "DELETE FROM Cliente WHERE ID_Cliente = %s"
         cursor.execute(sql, (id_cliente,))
@@ -134,7 +132,7 @@ def mostrar_rentas():
     print("\n🧾 Rentas Actuales:\n")
 
     try:
-        conexion = conectar() 
+        conexion = obtener_conexion() 
         cursor = conexion.cursor()
 
         query = """
@@ -176,7 +174,7 @@ def mostrar_rentas():
 
 def id_cliente_existe(id_cliente):
     try:
-        conn = conectar()
+        conn = obtener_conexion()
         cursor = conn.cursor()
         cursor.execute("SELECT ID_Cliente FROM Cliente WHERE ID_Cliente = %s", (id_cliente,))
         return cursor.fetchone() is not None

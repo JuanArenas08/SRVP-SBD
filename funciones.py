@@ -1,15 +1,7 @@
 
+import mysql.connector
+from conexion import *
 from crud import *
-
-
-def obtener_conexion():
-    return mysql.connector.connect(
-        user="root",        # ingrese nombre del usuario
-        password="asdasd",   # ingrese contraseña de su servidor
-        host="localhost",   # ingrese nombre del servidor
-        database="srvp",    # ingrese nombre de la base de datos
-        port=3306           # ingrse el puerto, por defecto es el 3306
-    )
 
 def mostrar_menu():
     print("\n¿Qué deseas hacer?")
@@ -18,6 +10,57 @@ def mostrar_menu():
     print("3️⃣  Mostrar los videojuegos disponibles")
     print("0️⃣  Salir")
     print("-" * 50)
+
+def mostrar_rentas_por_cliente():
+    print("\n📄 Consultar Rentas por Cliente:")
+    try:
+        id_cliente = input("Ingrese el ID del cliente: ").strip()
+
+        if not id_cliente.isdigit():
+            print("⚠️ El ID debe ser un número válido.")
+            return
+
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        query = """
+        SELECT 
+            c.ID_Cliente,
+            c.nombre_completo,
+            r.ID_Renta,
+            r.fecha_inicio,
+            r.fecha_devolucion_esperada,
+            r.fecha_devolucion_real,
+            r.estado_renta,
+            r.Tipo AS tipo_renta,
+            e.nombre AS empleado_asignado
+        FROM Cliente c
+        JOIN REALIZA rel ON c.ID_Cliente = rel.ID_Cliente
+        JOIN Renta r ON rel.ID_Renta = r.ID_Renta
+        JOIN Empleado e ON r.ID_Empleado = e.ID_Empleado
+        WHERE c.ID_Cliente = %s
+        ORDER BY r.fecha_inicio DESC;
+        """
+        cursor.execute(query, (id_cliente,))
+        resultados = cursor.fetchall()
+
+        if resultados:
+            headers = [desc[0] for desc in cursor.description]
+            print(f"\n🧾 Rentas del cliente {resultados[0][1]}:")
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ Este cliente no tiene rentas registradas.")
+
+    except mysql.connector.Error as err:
+        print("❌ Error al consultar la base de datos:", err)
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conexion' in locals():
+            conexion.close()
+
+    time.sleep(1.5)
 
 
 def rentas():
@@ -44,7 +87,8 @@ def rentas():
             break
         else:
             print("Opción no válida. Intente nuevamente...")
-        
+
+
 
 def clientes():
     while True:
