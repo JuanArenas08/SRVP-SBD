@@ -338,3 +338,85 @@ def eliminar_empleado():
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conexion' in locals(): conexion.close()
+
+#CRUD METODO DE PAGO
+
+#AGREGAR METODO DE PAGO
+
+def agregar_metodo_pago(id_pago, id_renta, tipo_pago):
+    try:
+        if tipo_pago not in ['deposito', 'efectivo', 'transaccion']:
+            print("❌ Tipo de pago inválido. Debe ser: 'deposito', 'efectivo' o 'transaccion'.")
+            return
+
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("INSERT INTO Metodo_Pago (ID_Pago, ID_Renta, tipo_pago) VALUES (%s, %s, %s)", 
+                       (id_pago, id_renta, tipo_pago))
+        conexion.commit()
+        print("✅ Método de pago agregado correctamente.")
+    except mysql.connector.Error as e:
+        print(f"❌ Error al agregar método de pago: {e}")
+    finally:
+        if conexion.is_connected():
+            cursor.close()
+            conexion.close()
+
+#MOSTRAR METODO DE PAGO
+
+def mostrar_metodos_pago():
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("SELECT ID_Pago, ID_Renta, tipo_pago FROM Metodo_Pago")
+        resultados = cursor.fetchall()
+        print(tabulate(resultados, headers=["ID Pago", "ID Renta", "Tipo de Pago"], tablefmt="fancy_grid"))
+    except mysql.connector.Error as e:
+        print(f"❌ Error al obtener métodos de pago: {e}")
+    finally:
+        if conexion.is_connected():
+            cursor.close()
+            conexion.close()
+
+#ACTUALIZAR METODO DE PAGO
+
+def actualizar_metodo_pago(id_pago, nuevo_id_renta, nuevo_tipo_pago):
+    try:
+        if nuevo_tipo_pago not in ['deposito', 'efectivo', 'transaccion']:
+            print("❌ Tipo de pago inválido. Debe ser: 'deposito', 'efectivo' o 'transaccion'.")
+            return
+
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("UPDATE Metodo_Pago SET ID_Renta = %s, tipo_pago = %s WHERE ID_Pago = %s",
+                       (nuevo_id_renta, nuevo_tipo_pago, id_pago))
+        if cursor.rowcount == 0:
+            print("⚠️ No se encontró ningún método de pago con ese ID.")
+        else:
+            conexion.commit()
+            print("✅ Método de pago actualizado correctamente.")
+    except mysql.connector.Error as e:
+        print(f"❌ Error al actualizar método de pago: {e}")
+    finally:
+        if conexion.is_connected():
+            cursor.close()
+            conexion.close()
+
+#ELIMINAR METODO DE PAGO
+
+def eliminar_metodo_pago(id_pago):
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("DELETE FROM Metodo_Pago WHERE ID_Pago = %s", (id_pago,))
+        if cursor.rowcount == 0:
+            print("⚠️ No se encontró ningún método de pago con ese ID.")
+        else:
+            conexion.commit()
+            print("✅ Método de pago eliminado correctamente.")
+    except mysql.connector.Error as e:
+        print(f"❌ Error al eliminar método de pago: {e}")
+    finally:
+        if conexion.is_connected():
+            cursor.close()
+            conexion.close()
