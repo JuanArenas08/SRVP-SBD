@@ -2,7 +2,7 @@ import mysql.connector
 from funciones import *
 from conexion import *
 # Para conectarse a su base de datos, debe ingresar el usuario, password, nombre del servidor, nombre de la base de datos y el puerto.
-# Se debe ingresar tanto en main.py como el funciones.py
+# Se debe ingresar en conexion.py
 
 # MENÚ PRINCIPAL
 while True:
@@ -17,6 +17,7 @@ while True:
     print("4. Mostrar las cuentas de playstationPlus disponibles")
     print("5. Administrar Transacciones")
     print("6. Administrar Multas")
+    print("7. Administrar Método de Pago")
     print("0. Salir")
     print("-" * 50)
 
@@ -34,6 +35,8 @@ while True:
         transacciones()
     elif opcion == "6":
         multas()
+    elif opcion == "7":
+        metodo_pago()
     elif opcion == "0":
         print("\n👋 ¡Gracias por usar SRVP! Hasta pronto.")
         break
