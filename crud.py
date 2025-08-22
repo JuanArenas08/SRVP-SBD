@@ -3,16 +3,7 @@ from conexion import *
 from tabulate import tabulate
 from datetime import datetime
 import time
-#CONECTAMOS A LA BASE DE DATOS
 
-#def conectar():
-#    return mysql.connector.connect(
-#        user="root",
-#        password="admin",
-#        host="hostname",
-#        database="srvp",
-#        port=3306
-#    )
 
 #CRUD CLIENTE
 #AÑADIR
