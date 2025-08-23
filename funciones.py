@@ -3,66 +3,6 @@ import mysql.connector
 from conexion import *
 from crud import *
 
-def mostrar_menu():
-    print("\n¿Qué deseas hacer?")
-    print("1️⃣  Mostrar todos los clientes")
-    print("2️⃣  Mostrar todas las rentas")
-    print("3️⃣  Mostrar los videojuegos disponibles")
-    print("0️⃣  Salir")
-    print("-" * 50)
-
-def mostrar_rentas_por_cliente():
-    print("\n📄 Consultar Rentas por Cliente:")
-    try:
-        id_cliente = input("Ingrese el ID del cliente: ").strip()
-
-        if not id_cliente.isdigit():
-            print("⚠️ El ID debe ser un número válido.")
-            return
-
-        conexion = obtener_conexion()
-        cursor = conexion.cursor()
-
-        query = """
-        SELECT 
-            c.ID_Cliente,
-            c.nombre_completo,
-            r.ID_Renta,
-            r.fecha_inicio,
-            r.fecha_devolucion_esperada,
-            r.fecha_devolucion_real,
-            r.estado_renta,
-            r.Tipo AS tipo_renta,
-            e.nombre AS empleado_asignado
-        FROM Cliente c
-        JOIN REALIZA rel ON c.ID_Cliente = rel.ID_Cliente
-        JOIN Renta r ON rel.ID_Renta = r.ID_Renta
-        JOIN Empleado e ON r.ID_Empleado = e.ID_Empleado
-        WHERE c.ID_Cliente = %s
-        ORDER BY r.fecha_inicio DESC;
-        """
-        cursor.execute(query, (id_cliente,))
-        resultados = cursor.fetchall()
-
-        if resultados:
-            headers = [desc[0] for desc in cursor.description]
-            print(f"\n🧾 Rentas del cliente {resultados[0][1]}:")
-            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
-        else:
-            print("ℹ️ Este cliente no tiene rentas registradas.")
-
-    except mysql.connector.Error as err:
-        print("❌ Error al consultar la base de datos:", err)
-
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals():
-            conexion.close()
-
-    time.sleep(1.5)
-
-
 
 def rentas():
     while True:
@@ -360,27 +300,6 @@ def clientes():
             print("Opción no válida. Intente nuevamente...")
 
 
-def mostrar_videojuegos():
-    print("\n🎲 Videojuegos Disponibles:")
-    try:
-        conexion = obtener_conexion()  # ✅
-        cursor = conexion.cursor()
-        cursor.execute("SELECT * FROM Videojuego WHERE disponibilidad = TRUE")
-        resultados = cursor.fetchall()
-
-        headers = [i[0] for i in cursor.description]
-        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
-
-    except mysql.connector.Error as err:
-        print("❌ Error:", err)
-
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals():
-            conexion.close()
-
-    time.sleep(1.5)
 
 def mostrar_psPlus():
     print("\n🔐 Cuentas PS Plus Disponibles:")
@@ -726,18 +645,15 @@ def transacciones():
                 if not id_transaccion.isdigit():
                     print("⚠️ El ID debe ser numérico.")
                     continue
-                if id_existe("Transaccion", "ID", id_transaccion):
-                    print("⚠️ Ese ID ya existe.")
-                    continue
                 break
 
             # Validar ID Cliente
             while True:
                 id_cliente = input("ID del Cliente: ").strip()
-                if not id_cliente.isdigit() or not id_existe("Cliente", "ID_Cliente", id_cliente):
-                    print("⚠️ Cliente no válido.")
+                if not id_cliente.isdigit():
+                    print("⚠️ El ID debe ser numérico.")
                     continue
-
+                
                 try:
                     conn = obtener_conexion()
                     cursor = conn.cursor()
@@ -756,31 +672,6 @@ def transacciones():
                     if 'cursor' in locals(): cursor.close()
                     if 'conn' in locals(): conn.close()
 
-            # Validar ID Renta
-            while True:
-                id_renta = input("ID de la Renta asociada: ").strip()
-                if not id_renta.isdigit() or not id_existe("Renta", "ID_Renta", id_renta):
-                    print("⚠️ Renta no válida.")
-                    continue
-
-                try:
-                    conn = obtener_conexion()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT Tipo FROM Renta WHERE ID_Renta = %s", (id_renta,))
-                    tipo = cursor.fetchone()
-                    if tipo:
-                        print(f"➡️ Tipo de renta: {tipo[0]}")
-                        confirmar = input("¿Desea continuar con esta renta? (s/n): ").strip().lower()
-                        if confirmar == "s":
-                            break
-                    else:
-                        print("❌ Renta no encontrada.")
-                except Exception as e:
-                    print(f"❌ Error: {e}")
-                finally:
-                    if 'cursor' in locals(): cursor.close()
-                    if 'conn' in locals(): conn.close()
-
             # Fecha
             while True:
                 fecha = input("Fecha (YYYY-MM-DD): ").strip()
@@ -790,14 +681,19 @@ def transacciones():
                 except ValueError:
                     print("⚠️ Fecha inválida. Formato correcto: YYYY-MM-DD.")
 
-            #Hora
-            # Validar hora
+            # Hora (formato HHMM sin separadores)
             while True:
-                hora_transaccion = input("Nueva Hora transacción (HHMM): ").strip()
-                if not hora_transaccion.isdigit() or len(hora_transaccion) != 4:
-                    print("⚠️ Hora inválida.")
-                else:
-                    break
+                hora = input("Hora (HHMM, ej: 1430 para 2:30 PM): ").strip()
+                if not hora.isdigit() or len(hora) != 4:
+                    print("⚠️ Hora inválida. Debe ser 4 dígitos (HHMM).")
+                    continue
+                horas = int(hora[:2])
+                minutos = int(hora[2:])
+                if horas < 0 or horas > 23 or minutos < 0 or minutos > 59:
+                    print("⚠️ Hora inválida. HH debe estar entre 00-23, MM entre 00-59.")
+                    continue
+                break
+
             # Monto total
             while True:
                 monto = input("Monto total de la transacción: ").strip()
@@ -806,7 +702,7 @@ def transacciones():
                 else:
                     break
 
-            agregar_transaccion(id_transaccion, id_cliente, id_renta, fecha, hora_transaccion, int(monto))
+            agregar_transaccion(int(id_transaccion), int(id_cliente), fecha, hora, int(monto))
 
         elif opc == "2":
             mostrar_transacciones()
@@ -815,19 +711,19 @@ def transacciones():
             print("\n✏️ Editar transacción existente")
 
             id_transaccion = input("ID de la transacción a editar: ").strip()
-            if not id_transaccion.isdigit() or not id_existe("Transaccion", "ID", id_transaccion):
-                print("❌ No existe una transacción con ese ID.")
+            if not id_transaccion.isdigit():
+                print("⚠️ El ID debe ser numérico.")
                 continue
 
             try:
                 conn = obtener_conexion()
                 cursor = conn.cursor()
-                cursor.execute("SELECT ID_Cliente, ID_Renta FROM Transaccion WHERE ID = %s", (id_transaccion,))
+                cursor.execute("SELECT ID_Cliente FROM Transaccion WHERE ID = %s", (id_transaccion,))
                 resultado = cursor.fetchone()
                 if resultado:
-                    id_cliente, id_renta = resultado
+                    id_cliente = resultado[0]
                 else:
-                    print("❌ No se pudo recuperar los datos de la transacción.")
+                    print("❌ No se encontró una transacción con ese ID.")
                     continue
             except Exception as e:
                 print(f"❌ Error: {e}")
@@ -845,14 +741,18 @@ def transacciones():
                 except ValueError:
                     print("⚠️ Fecha inválida. Usa el formato YYYY-MM-DD.")
 
-            # Hora
-            # Validar hora
+            # Hora (formato HHMM sin separadores)
             while True:
-                hora = input("Nueva Hora transacción (HHMM): ").strip()
+                hora = input("Nueva hora (HHMM, ej: 1430 para 2:30 PM): ").strip()
                 if not hora.isdigit() or len(hora) != 4:
-                    print("⚠️ Hora inválida.")
-                else:
-                    break
+                    print("⚠️ Hora inválida. Debe ser 4 dígitos (HHMM).")
+                    continue
+                horas = int(hora[:2])
+                minutos = int(hora[2:])
+                if horas < 0 or horas > 23 or minutos < 0 or minutos > 59:
+                    print("⚠️ Hora inválida. HH debe estar entre 00-23, MM entre 00-59.")
+                    continue
+                break
 
             # Monto
             while True:
@@ -862,7 +762,7 @@ def transacciones():
                 else:
                     break
 
-            actualizar_transaccion(id_transaccion, id_cliente, id_renta, fecha, hora, int(monto))
+            actualizar_transaccion(int(id_transaccion), int(id_cliente), fecha, hora, int(monto))
 
         elif opc == "4":
             print("\n🗑️ Eliminar transacción")
@@ -870,10 +770,6 @@ def transacciones():
 
             if not id_transaccion.isdigit():
                 print("⚠️ El ID debe ser numérico.")
-                continue
-
-            if not id_existe("Transaccion", "ID", id_transaccion):
-                print("⚠️ No existe una transacción con ese ID.")
                 continue
 
             try:
@@ -906,122 +802,11 @@ def transacciones():
             if confirmacion != "s":
                 print("❌ Operación cancelada.")
                 continue
-            eliminar_transaccion(id_transaccion)
-
-
+                
+            eliminar_transaccion(int(id_transaccion))
 
         elif opc == "0":
             print("Saliendo del menú de Transacciones...")
-            break
-
-        else:
-            print("⚠️ Opción no válida. Intente nuevamente.")
-
-
-def metodo_pago():
-    while True:
-        print("\n¿Qué deseas hacer en Métodos de Pago?")
-        print("1️⃣  Añadir Método de Pago")
-        print("2️⃣  Mostrar todos los Métodos de Pago")
-        print("3️⃣  Editar Método de Pago")
-        print("4️⃣  Eliminar Método de Pago")
-        print("0️⃣  Salir")
-        print("-" * 50)
-
-        opc = input("Seleccione una opción: ").strip()
-
-        if opc == "1":
-            print("\n🆕 Ingreso de nuevo método de pago")
-
-            # ID del método de pago
-            while True:
-                id_pago = input("ID del método de pago: ").strip()
-                if not id_pago.isdigit():
-                    print("⚠️ El ID debe ser numérico.")
-                    continue
-                if id_existe("Metodo_Pago", "ID_Pago", id_pago):
-                    print("⚠️ Ese ID ya existe.")
-                    continue
-                break
-
-            # Validar ID Renta
-            while True:
-                id_renta = input("ID de la renta asociada: ").strip()
-                if not id_renta.isdigit() or not id_existe("Renta", "ID_Renta", id_renta):
-                    print("⚠️ Renta no válida.")
-                else:
-                    break
-
-            # Tipo de pago
-            while True:
-                tipo_pago = input("Tipo de pago (deposito, efectivo, transaccion): ").strip().lower()
-                if tipo_pago not in ["deposito", "efectivo", "transaccion"]:
-                    print("⚠️ Tipo inválido.")
-                else:
-                    break
-
-            agregar_metodo_pago(id_pago, id_renta, tipo_pago)
-
-        elif opc == "2":
-            mostrar_metodos_pago()
-
-        elif opc == "3":
-            print("\n✏️ Editar método de pago existente")
-
-            id_pago = input("ID del método de pago a editar: ").strip()
-            if not id_pago.isdigit() or not id_existe("Metodo_Pago", "ID_Pago", id_pago):
-                print("❌ No existe un método de pago con ese ID.")
-                continue
-
-            # Recuperar ID_Renta actual desde la base de datos
-            try:
-                conn = obtener_conexion()
-                cursor = conn.cursor()
-                cursor.execute("SELECT ID_Renta FROM Metodo_Pago WHERE ID_Pago = %s", (id_pago,))
-                resultado = cursor.fetchone()
-                if resultado:
-                    id_renta_actual = resultado[0]
-                    print(f"➡️ ID Renta asociada actual: {id_renta_actual} (no se puede modificar)")
-                else:
-                    print("❌ No se pudo obtener la renta asociada.")
-                    continue
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                continue
-            finally:
-                if 'cursor' in locals(): cursor.close()
-                if 'conn' in locals(): conn.close()
-
-            # Nuevo tipo de pago
-            while True:
-                nuevo_tipo_pago = input("Nuevo tipo de pago (deposito, efectivo, transaccion): ").strip().lower()
-                if nuevo_tipo_pago not in ["deposito", "efectivo", "transaccion"]:
-                    print("⚠️ Tipo de pago inválido.")
-                else:
-                    break
-
-            actualizar_metodo_pago(id_pago, id_renta_actual, nuevo_tipo_pago)
-
-
-        elif opc == "4":
-            print("\n🗑️ Eliminar método de pago")
-
-            id_pago = input("ID del método de pago a eliminar: ").strip()
-            if not id_pago.isdigit():
-                print("⚠️ El ID debe ser numérico.")
-                continue
-            if not id_existe("Metodo_Pago", "ID_Pago", id_pago):
-                print("⚠️ No existe un método de pago con ese ID.")
-                continue
-
-            confirmacion = input(f"¿Estás seguro de que deseas eliminar el método de pago con ID {id_pago}? (s/n): ").strip().lower()
-            if confirmacion == "s":
-                eliminar_metodo_pago(id_pago)
-            else:
-                print("❌ Operación cancelada.")
-
-        elif opc == "0":
-            print("Saliendo del menú de Métodos de Pago...")
             break
 
         else:

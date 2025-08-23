@@ -3,16 +3,7 @@ from conexion import *
 from tabulate import tabulate
 from datetime import datetime
 import time
-#CONECTAMOS A LA BASE DE DATOS
 
-#def conectar():
-#    return mysql.connector.connect(
-#        user="root",
-#        password="admin",
-#        host="hostname",
-#        database="srvp",
-#        port=3306
-#    )
 
 #CRUD CLIENTE
 #AÑADIR
@@ -303,23 +294,30 @@ def crear_empleado():
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
-        # Verificar si el ID ya existe
-        cursor.execute("SELECT * FROM Empleado WHERE ID_Empleado = %s", (id_empleado,))
-        if cursor.fetchone():
-            print("⚠️ Ya existe un empleado con ese ID.")
-            return
-
-        query = "INSERT INTO Empleado (ID_Empleado, nombre, rol) VALUES (%s, %s, %s)"
-        cursor.execute(query, (int(id_empleado), nombre, rol))
+        # Llamar al stored procedure para crear empleado
+        cursor.callproc('sp_crear_empleado', (int(id_empleado), rol, nombre))
         conexion.commit()
 
         print("✅ Empleado agregado exitosamente.")
 
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        # Mostrar todos los empleados después de agregar
+        cursor.callproc('sp_leer_empleados')
+        resultados = []
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+        
+        if resultados:
+            headers = [desc[0] for desc in cursor.description]
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
 
     except mysql.connector.Error as err:
-        print("❌ Error al agregar el empleado:", err)
+        print(f"❌ Error al agregar el empleado: {err}")
+        if "El ID de empleado ya existe" in str(err):
+            print("⚠️ Ya existe un empleado con ese ID.")
+        elif "El rol debe ser" in str(err):
+            print("⚠️ El rol debe ser: Administrador, Vendedor o Soporte.")
 
     finally:
         if 'cursor' in locals(): cursor.close()
@@ -333,11 +331,29 @@ def mostrar_empleados():
     try:
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        
+        # Llamar al stored procedure para leer empleados
+        cursor.callproc('sp_leer_empleados')
+        
+        resultados = []
+        headers = []  # Inicializar headers como lista vacía
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            # Obtener los nombres de las columnas
+            if cursor.description:
+                headers = [desc[0] for desc in cursor.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
+            # Definir headers básicos si no hay resultados pero queremos mostrar estructura
+            if not headers:
+                headers = ["ID_Empleado","rol","nombre"]
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al consultar empleados:", err)
+        print(f"❌ Error al consultar empleados: {err}")
 
     finally:
         if 'cursor' in locals(): cursor.close()
@@ -347,88 +363,173 @@ def mostrar_empleados():
 
 def editar_empleado():
     print("\n✏️ Editar empleado:")
-    nombre = input("Ingrese el nombre del empleado a editar: ").strip()
-
+    
     try:
+        # Primero mostrar todos los empleados para que el usuario elija
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-
-        cursor.execute("SELECT * FROM Empleado WHERE nombre = %s", (nombre,))
-        empleado = cursor.fetchone()
-
-        if not empleado:
+        cursor.callproc('sp_leer_empleados')
+        
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if not resultados:
+            print("❌ No hay empleados registrados.")
+            return
+            
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        
+        id_empleado = input("\nIngrese el ID del empleado a editar: ").strip()
+        
+        if not id_empleado.isdigit():
+            print("❌ El ID debe ser un número.")
+            return
+            
+        # Verificar que el empleado existe usando el stored procedure
+        cursor.callproc('sp_leer_empleados')
+        empleado_encontrado = None
+        for result in cursor.stored_results():
+            empleados = result.fetchall()
+            for empleado in empleados:
+                if empleado[0] == int(id_empleado):
+                    empleado_encontrado = empleado
+                    break
+        
+        if not empleado_encontrado:
             print("❌ Empleado no encontrado.")
             return
-
-        print(tabulate([empleado], headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
-
+            
+        print(f"\nEditando empleado: {empleado_encontrado[2]} (ID: {empleado_encontrado[0]}, Rol: {empleado_encontrado[1]})")
+        
         nuevo_nombre = input("Nuevo nombre (dejar en blanco para no cambiar): ").strip()
         nuevo_rol = input("Nuevo rol (dejar en blanco para no cambiar): ").strip()
 
-        campos = []
-        valores = []
+        # Si no se ingresaron nuevos valores, mantener los actuales
+        if not nuevo_nombre:
+            nuevo_nombre = empleado_encontrado[2]
+        if not nuevo_rol:
+            nuevo_rol = empleado_encontrado[1]
 
-        if nuevo_nombre:
-            campos.append("nombre = %s")
-            valores.append(nuevo_nombre)
-        if nuevo_rol:
-            campos.append("rol = %s")
-            valores.append(nuevo_rol)
-
-        if not campos:
-            print("⚠️ No se realizaron cambios.")
-            return
-
-        valores.append(nombre)  # Para el WHERE
-        query = f"UPDATE Empleado SET {', '.join(campos)} WHERE nombre = %s"
-        cursor.execute(query, tuple(valores))
+        # Llamar al stored procedure para actualizar empleado
+        cursor.callproc('sp_actualizar_empleado', (int(id_empleado), nuevo_rol, nuevo_nombre))
         conexion.commit()
 
         print("✅ Empleado actualizado.")
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        
+        # Mostrar empleados actualizados
+        cursor.callproc('sp_leer_empleados')
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al editar empleado:", err)
+        print(f"❌ Error al editar empleado: {err}")
+        if "El ID de empleado no existe" in str(err):
+            print("⚠️ No existe un empleado con ese ID.")
+        elif "El rol debe ser" in str(err):
+            print("⚠️ El rol debe ser: Administrador, Vendedor o Soporte.")
 
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conexion' in locals(): conexion.close()
 
-
 # Eliminar empleado
 
 def eliminar_empleado():
     print("\n🗑️ Eliminar empleado:")
-    nombre = input("Ingrese el nombre del empleado a eliminar: ").strip()
-
+    
     try:
+        # Primero mostrar todos los empleados para que el usuario elija
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-
-        cursor.execute("SELECT * FROM Empleado WHERE nombre = %s", (nombre,))
-        empleado = cursor.fetchone()
-
-        if not empleado:
+        cursor.callproc('sp_leer_empleados')
+        
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if not resultados:
+            print("❌ No hay empleados registrados.")
+            return
+            
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        
+        id_empleado = input("\nIngrese el ID del empleado a eliminar: ").strip()
+        
+        if not id_empleado.isdigit():
+            print("❌ El ID debe ser un número.")
+            return
+            
+        # Verificar que el empleado existe usando el stored procedure
+        cursor.callproc('sp_leer_empleados')
+        empleado_encontrado = None
+        for result in cursor.stored_results():
+            empleados = result.fetchall()
+            for empleado in empleados:
+                if empleado[0] == int(id_empleado):
+                    empleado_encontrado = empleado
+                    break
+        
+        if not empleado_encontrado:
             print("❌ Empleado no encontrado.")
             return
-
-        print(tabulate([empleado], headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
-
+            
+        print(f"\nEmpleado a eliminar: {empleado_encontrado[2]} (ID: {empleado_encontrado[0]}, Rol: {empleado_encontrado[1]})")
+        
         confirmar = input("¿Está seguro que desea eliminar este empleado? (s/n): ").strip().lower()
         if confirmar != "s":
             print("❌ Operación cancelada.")
             return
 
-        cursor.execute("DELETE FROM Empleado WHERE nombre = %s", (nombre,))
+        # Llamar al stored procedure para eliminar empleado
+        cursor.callproc('sp_eliminar_empleado', (int(id_empleado),))
         conexion.commit()
 
         print("✅ Empleado eliminado.")
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        
+        # Mostrar empleados actualizados
+        cursor.callproc('sp_leer_empleados')
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al eliminar empleado:", err)
+        print(f"❌ Error al eliminar empleado: {err}")
+        if "El ID de empleado no existe" in str(err):
+            print("⚠️ No existe un empleado con ese ID.")
+        elif "No se puede eliminar el empleado porque tiene rentas asociadas" in str(err):
+            print("⚠️ No se puede eliminar el empleado porque tiene rentas asociadas.")
+        elif "No se puede eliminar el empleado porque tiene multas asociadas" in str(err):
+            print("⚠️ No se puede eliminar el empleado porque tiene multas asociadas.")
 
     finally:
         if 'cursor' in locals(): cursor.close()
@@ -638,22 +739,37 @@ def mostrar_multas():
 # CRUD TRANSACCIONES
 #AÑADIR TRANSACCION
 
-def agregar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
+def agregar_transaccion(id_transaccion, id_cliente, fecha, hora, monto_total):
     try:
-        cursor.execute(
-            "INSERT INTO Transaccion (ID, ID_Cliente, ID_Renta, fecha, hora, monto_total) "
-            "VALUES (%s, %s, %s, %s, %s, %s)",
-            (id, id_cliente, id_renta, fecha, hora, monto_total)
-        )
-        conexion.commit()
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        
+        # Llamar al stored procedure para crear transacción
+        cursor.callproc('sp_crear_transaccion', (id_transaccion, id_cliente, fecha, hora, monto_total))
+        conn.commit()
+        
         print("✅ Transacción agregada exitosamente.")
-    except mysql.connector.Error as error:
-        print(f"❌ Error al agregar la transacción: {error}")
+        
+    except mysql.connector.Error as err:
+        print(f"❌ Error al agregar la transacción: {err}")
+        if "El ID de transacción ya existe" in str(err):
+            print("⚠️ Ya existe una transacción con ese ID.")
+        elif "El ID de cliente no existe" in str(err):
+            print("⚠️ El ID de cliente no existe.")
+        elif "La hora debe estar entre" in str(err):
+            print("⚠️ La hora debe tener un formato válido (HH:MM:SS).")
+        elif "El año de la fecha debe estar entre" in str(err):
+            print("⚠️ La fecha debe estar entre los años 2000 y 2100.")
+        elif "El monto total debe ser mayor a 0" in str(err):
+            print("⚠️ El monto total debe ser mayor a 0.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
-        cursor.close()
-        conexion.close()
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
 
 #ELIMINAR TRANSACCION
 def eliminar_transaccion(id_transaccion):
@@ -661,66 +777,57 @@ def eliminar_transaccion(id_transaccion):
         conn = obtener_conexion()
         cursor = conn.cursor()
 
-        # Intentar eliminar directamente la transacción
-        cursor.execute("DELETE FROM Transaccion WHERE ID = %s", (id_transaccion,))
+        # Llamar al stored procedure para eliminar transacción
+        cursor.callproc('sp_eliminar_transaccion', (id_transaccion,))
         conn.commit()
 
         print("✅ Transacción eliminada exitosamente.")
 
+    except mysql.connector.Error as err:
+        print(f"❌ Error al eliminar la transacción: {err}")
+        if "El ID de transacción no existe" in str(err):
+            print("⚠️ No existe una transacción con ese ID.")
+        elif "No se puede eliminar la transacción porque tiene rentas asociadas" in str(err):
+            print("⚠️ No se puede eliminar la transacción porque tiene rentas asociadas.")
+            
     except Exception as e:
-        # Forzar eliminación si hay claves foráneas (borrar desde otras tablas primero)
-        print("⚠️ No se pudo eliminar directamente. Intentando forzar eliminación...")
-        try:
-            # Buscar todas las tablas que referencian a Transaccion.ID
-            cursor.execute("""
-                SELECT TABLE_NAME, COLUMN_NAME
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                WHERE REFERENCED_TABLE_NAME = 'Transaccion'
-                  AND REFERENCED_COLUMN_NAME = 'ID'
-                  AND TABLE_SCHEMA = 'srvp';
-            """)
-            relaciones = cursor.fetchall()
-
-            for tabla, columna in relaciones:
-                print(f"🔄 Eliminando registros de {tabla} donde {columna} = {id_transaccion}...")
-                cursor.execute(f"DELETE FROM {tabla} WHERE {columna} = %s", (id_transaccion,))
-
-            # Ahora sí eliminar la transacción
-            cursor.execute("DELETE FROM Transaccion WHERE ID = %s", (id_transaccion,))
-            conn.commit()
-            print("✅ Transacción forzada y eliminada correctamente.")
-
-        except Exception as e2:
-            print(f"❌ No se pudo forzar la eliminación: {e2}")
-
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
-
 #ACTUALIZAR TRANSACCION
-def actualizar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
+def actualizar_transaccion(id_transaccion, id_cliente, fecha, hora, monto_total):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = """
-        UPDATE Transaccion
-        SET ID_Cliente = %s,
-            ID_Renta = %s,
-            fecha = %s,
-            hora = %s,
-            monto_total = %s
-        WHERE ID = %s
-        """
-        valores = (id_cliente, id_renta, fecha, hora, monto_total, id)
-        cursor.execute(sql, valores)
+        
+        # Llamar al stored procedure para actualizar transacción
+        cursor.callproc('sp_actualizar_transaccion', (id_transaccion, id_cliente, fecha, hora, monto_total))
         conn.commit()
+        
         if cursor.rowcount > 0:
             print("✅ Transacción actualizada exitosamente.")
         else:
             print("⚠️ No se encontró una transacción con ese ID.")
+            
     except mysql.connector.Error as err:
         print(f"❌ Error al actualizar la transacción: {err}")
+        if "El ID de transacción no existe" in str(err):
+            print("⚠️ No existe una transacción con ese ID.")
+        elif "El ID de cliente no existe" in str(err):
+            print("⚠️ El ID de cliente no existe.")
+        elif "La hora debe estar entre" in str(err):
+            print("⚠️ La hora debe tener un formato válido (HH:MM:SS).")
+        elif "El año de la fecha debe estar entre" in str(err):
+            print("⚠️ La fecha debe estar entre los años 2000 y 2100.")
+        elif "El monto total debe ser mayor a 0" in str(err):
+            print("⚠️ El monto total debe ser mayor a 0.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
@@ -732,34 +839,32 @@ def mostrar_transacciones():
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
-        query = """
-        SELECT 
-            T.ID,
-            C.nombre_completo AS Nombre_Cliente,
-            T.ID_Renta,
-            T.fecha,
-            T.hora,
-            T.monto_total
-        FROM Transaccion T
-        JOIN Cliente C ON T.ID_Cliente = C.ID_Cliente
-        ORDER BY T.ID;
-        """
-
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        columnas = [desc[0] for desc in cursor.description]
-
+        # Llamar al stored procedure para leer transacciones
+        cursor.callproc('sp_leer_transacciones')
+        
+        resultados = []
+        headers = ["ID", "ID_Cliente", "nombre_cliente", "fecha", "hora", 
+                  "monto_total", "ID_Renta", "estado_renta", "tipo_renta"]
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
         if resultados:
-            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
         else:
             print("No hay transacciones registradas.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
         print(f"❌ Error al consultar la base de datos: {err}")
-
+        
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conexion' in locals(): conexion.close()
 
     time.sleep(1.5)
-
