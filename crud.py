@@ -735,22 +735,37 @@ def mostrar_multas():
 # CRUD TRANSACCIONES
 #AÑADIR TRANSACCION
 
-def agregar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
+def agregar_transaccion(id_transaccion, id_cliente, fecha, hora, monto_total):
     try:
-        cursor.execute(
-            "INSERT INTO Transaccion (ID, ID_Cliente, ID_Renta, fecha, hora, monto_total) "
-            "VALUES (%s, %s, %s, %s, %s, %s)",
-            (id, id_cliente, id_renta, fecha, hora, monto_total)
-        )
-        conexion.commit()
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        
+        # Llamar al stored procedure para crear transacción
+        cursor.callproc('sp_crear_transaccion', (id_transaccion, id_cliente, fecha, hora, monto_total))
+        conn.commit()
+        
         print("✅ Transacción agregada exitosamente.")
-    except mysql.connector.Error as error:
-        print(f"❌ Error al agregar la transacción: {error}")
+        
+    except mysql.connector.Error as err:
+        print(f"❌ Error al agregar la transacción: {err}")
+        if "El ID de transacción ya existe" in str(err):
+            print("⚠️ Ya existe una transacción con ese ID.")
+        elif "El ID de cliente no existe" in str(err):
+            print("⚠️ El ID de cliente no existe.")
+        elif "La hora debe estar entre" in str(err):
+            print("⚠️ La hora debe tener un formato válido (HH:MM:SS).")
+        elif "El año de la fecha debe estar entre" in str(err):
+            print("⚠️ La fecha debe estar entre los años 2000 y 2100.")
+        elif "El monto total debe ser mayor a 0" in str(err):
+            print("⚠️ El monto total debe ser mayor a 0.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
-        cursor.close()
-        conexion.close()
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
 
 #ELIMINAR TRANSACCION
 def eliminar_transaccion(id_transaccion):
@@ -758,66 +773,57 @@ def eliminar_transaccion(id_transaccion):
         conn = obtener_conexion()
         cursor = conn.cursor()
 
-        # Intentar eliminar directamente la transacción
-        cursor.execute("DELETE FROM Transaccion WHERE ID = %s", (id_transaccion,))
+        # Llamar al stored procedure para eliminar transacción
+        cursor.callproc('sp_eliminar_transaccion', (id_transaccion,))
         conn.commit()
 
         print("✅ Transacción eliminada exitosamente.")
 
+    except mysql.connector.Error as err:
+        print(f"❌ Error al eliminar la transacción: {err}")
+        if "El ID de transacción no existe" in str(err):
+            print("⚠️ No existe una transacción con ese ID.")
+        elif "No se puede eliminar la transacción porque tiene rentas asociadas" in str(err):
+            print("⚠️ No se puede eliminar la transacción porque tiene rentas asociadas.")
+            
     except Exception as e:
-        # Forzar eliminación si hay claves foráneas (borrar desde otras tablas primero)
-        print("⚠️ No se pudo eliminar directamente. Intentando forzar eliminación...")
-        try:
-            # Buscar todas las tablas que referencian a Transaccion.ID
-            cursor.execute("""
-                SELECT TABLE_NAME, COLUMN_NAME
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                WHERE REFERENCED_TABLE_NAME = 'Transaccion'
-                  AND REFERENCED_COLUMN_NAME = 'ID'
-                  AND TABLE_SCHEMA = 'srvp';
-            """)
-            relaciones = cursor.fetchall()
-
-            for tabla, columna in relaciones:
-                print(f"🔄 Eliminando registros de {tabla} donde {columna} = {id_transaccion}...")
-                cursor.execute(f"DELETE FROM {tabla} WHERE {columna} = %s", (id_transaccion,))
-
-            # Ahora sí eliminar la transacción
-            cursor.execute("DELETE FROM Transaccion WHERE ID = %s", (id_transaccion,))
-            conn.commit()
-            print("✅ Transacción forzada y eliminada correctamente.")
-
-        except Exception as e2:
-            print(f"❌ No se pudo forzar la eliminación: {e2}")
-
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
-
 #ACTUALIZAR TRANSACCION
-def actualizar_transaccion(id, id_cliente, id_renta, fecha, hora, monto_total):
+def actualizar_transaccion(id_transaccion, id_cliente, fecha, hora, monto_total):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = """
-        UPDATE Transaccion
-        SET ID_Cliente = %s,
-            ID_Renta = %s,
-            fecha = %s,
-            hora = %s,
-            monto_total = %s
-        WHERE ID = %s
-        """
-        valores = (id_cliente, id_renta, fecha, hora, monto_total, id)
-        cursor.execute(sql, valores)
+        
+        # Llamar al stored procedure para actualizar transacción
+        cursor.callproc('sp_actualizar_transaccion', (id_transaccion, id_cliente, fecha, hora, monto_total))
         conn.commit()
+        
         if cursor.rowcount > 0:
             print("✅ Transacción actualizada exitosamente.")
         else:
             print("⚠️ No se encontró una transacción con ese ID.")
+            
     except mysql.connector.Error as err:
         print(f"❌ Error al actualizar la transacción: {err}")
+        if "El ID de transacción no existe" in str(err):
+            print("⚠️ No existe una transacción con ese ID.")
+        elif "El ID de cliente no existe" in str(err):
+            print("⚠️ El ID de cliente no existe.")
+        elif "La hora debe estar entre" in str(err):
+            print("⚠️ La hora debe tener un formato válido (HH:MM:SS).")
+        elif "El año de la fecha debe estar entre" in str(err):
+            print("⚠️ La fecha debe estar entre los años 2000 y 2100.")
+        elif "El monto total debe ser mayor a 0" in str(err):
+            print("⚠️ El monto total debe ser mayor a 0.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
@@ -829,34 +835,32 @@ def mostrar_transacciones():
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
-        query = """
-        SELECT 
-            T.ID,
-            C.nombre_completo AS Nombre_Cliente,
-            T.ID_Renta,
-            T.fecha,
-            T.hora,
-            T.monto_total
-        FROM Transaccion T
-        JOIN Cliente C ON T.ID_Cliente = C.ID_Cliente
-        ORDER BY T.ID;
-        """
-
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        columnas = [desc[0] for desc in cursor.description]
-
+        # Llamar al stored procedure para leer transacciones
+        cursor.callproc('sp_leer_transacciones')
+        
+        resultados = []
+        headers = ["ID", "ID_Cliente", "nombre_cliente", "fecha", "hora", 
+                  "monto_total", "ID_Renta", "estado_renta", "tipo_renta"]
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
         if resultados:
-            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
         else:
             print("No hay transacciones registradas.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
         print(f"❌ Error al consultar la base de datos: {err}")
-
+        
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conexion' in locals(): conexion.close()
 
     time.sleep(1.5)
-
