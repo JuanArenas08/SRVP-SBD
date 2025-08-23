@@ -294,23 +294,30 @@ def crear_empleado():
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
-        # Verificar si el ID ya existe
-        cursor.execute("SELECT * FROM Empleado WHERE ID_Empleado = %s", (id_empleado,))
-        if cursor.fetchone():
-            print("⚠️ Ya existe un empleado con ese ID.")
-            return
-
-        query = "INSERT INTO Empleado (ID_Empleado, nombre, rol) VALUES (%s, %s, %s)"
-        cursor.execute(query, (int(id_empleado), nombre, rol))
+        # Llamar al stored procedure para crear empleado
+        cursor.callproc('sp_crear_empleado', (int(id_empleado), rol, nombre))
         conexion.commit()
 
         print("✅ Empleado agregado exitosamente.")
 
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        # Mostrar todos los empleados después de agregar
+        cursor.callproc('sp_leer_empleados')
+        resultados = []
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+        
+        if resultados:
+            headers = [desc[0] for desc in cursor.description]
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
 
     except mysql.connector.Error as err:
-        print("❌ Error al agregar el empleado:", err)
+        print(f"❌ Error al agregar el empleado: {err}")
+        if "El ID de empleado ya existe" in str(err):
+            print("⚠️ Ya existe un empleado con ese ID.")
+        elif "El rol debe ser" in str(err):
+            print("⚠️ El rol debe ser: Administrador, Vendedor o Soporte.")
 
     finally:
         if 'cursor' in locals(): cursor.close()
@@ -324,11 +331,29 @@ def mostrar_empleados():
     try:
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        
+        # Llamar al stored procedure para leer empleados
+        cursor.callproc('sp_leer_empleados')
+        
+        resultados = []
+        headers = []  # Inicializar headers como lista vacía
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            # Obtener los nombres de las columnas
+            if cursor.description:
+                headers = [desc[0] for desc in cursor.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
+            # Definir headers básicos si no hay resultados pero queremos mostrar estructura
+            if not headers:
+                headers = ["ID_Empleado","rol","nombre"]
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al consultar empleados:", err)
+        print(f"❌ Error al consultar empleados: {err}")
 
     finally:
         if 'cursor' in locals(): cursor.close()
@@ -338,88 +363,173 @@ def mostrar_empleados():
 
 def editar_empleado():
     print("\n✏️ Editar empleado:")
-    nombre = input("Ingrese el nombre del empleado a editar: ").strip()
-
+    
     try:
+        # Primero mostrar todos los empleados para que el usuario elija
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-
-        cursor.execute("SELECT * FROM Empleado WHERE nombre = %s", (nombre,))
-        empleado = cursor.fetchone()
-
-        if not empleado:
+        cursor.callproc('sp_leer_empleados')
+        
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if not resultados:
+            print("❌ No hay empleados registrados.")
+            return
+            
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        
+        id_empleado = input("\nIngrese el ID del empleado a editar: ").strip()
+        
+        if not id_empleado.isdigit():
+            print("❌ El ID debe ser un número.")
+            return
+            
+        # Verificar que el empleado existe usando el stored procedure
+        cursor.callproc('sp_leer_empleados')
+        empleado_encontrado = None
+        for result in cursor.stored_results():
+            empleados = result.fetchall()
+            for empleado in empleados:
+                if empleado[0] == int(id_empleado):
+                    empleado_encontrado = empleado
+                    break
+        
+        if not empleado_encontrado:
             print("❌ Empleado no encontrado.")
             return
-
-        print(tabulate([empleado], headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
-
+            
+        print(f"\nEditando empleado: {empleado_encontrado[2]} (ID: {empleado_encontrado[0]}, Rol: {empleado_encontrado[1]})")
+        
         nuevo_nombre = input("Nuevo nombre (dejar en blanco para no cambiar): ").strip()
         nuevo_rol = input("Nuevo rol (dejar en blanco para no cambiar): ").strip()
 
-        campos = []
-        valores = []
+        # Si no se ingresaron nuevos valores, mantener los actuales
+        if not nuevo_nombre:
+            nuevo_nombre = empleado_encontrado[2]
+        if not nuevo_rol:
+            nuevo_rol = empleado_encontrado[1]
 
-        if nuevo_nombre:
-            campos.append("nombre = %s")
-            valores.append(nuevo_nombre)
-        if nuevo_rol:
-            campos.append("rol = %s")
-            valores.append(nuevo_rol)
-
-        if not campos:
-            print("⚠️ No se realizaron cambios.")
-            return
-
-        valores.append(nombre)  # Para el WHERE
-        query = f"UPDATE Empleado SET {', '.join(campos)} WHERE nombre = %s"
-        cursor.execute(query, tuple(valores))
+        # Llamar al stored procedure para actualizar empleado
+        cursor.callproc('sp_actualizar_empleado', (int(id_empleado), nuevo_rol, nuevo_nombre))
         conexion.commit()
 
         print("✅ Empleado actualizado.")
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        
+        # Mostrar empleados actualizados
+        cursor.callproc('sp_leer_empleados')
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al editar empleado:", err)
+        print(f"❌ Error al editar empleado: {err}")
+        if "El ID de empleado no existe" in str(err):
+            print("⚠️ No existe un empleado con ese ID.")
+        elif "El rol debe ser" in str(err):
+            print("⚠️ El rol debe ser: Administrador, Vendedor o Soporte.")
 
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conexion' in locals(): conexion.close()
 
-
 # Eliminar empleado
 
 def eliminar_empleado():
     print("\n🗑️ Eliminar empleado:")
-    nombre = input("Ingrese el nombre del empleado a eliminar: ").strip()
-
+    
     try:
+        # Primero mostrar todos los empleados para que el usuario elija
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-
-        cursor.execute("SELECT * FROM Empleado WHERE nombre = %s", (nombre,))
-        empleado = cursor.fetchone()
-
-        if not empleado:
+        cursor.callproc('sp_leer_empleados')
+        
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if not resultados:
+            print("❌ No hay empleados registrados.")
+            return
+            
+        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        
+        id_empleado = input("\nIngrese el ID del empleado a eliminar: ").strip()
+        
+        if not id_empleado.isdigit():
+            print("❌ El ID debe ser un número.")
+            return
+            
+        # Verificar que el empleado existe usando el stored procedure
+        cursor.callproc('sp_leer_empleados')
+        empleado_encontrado = None
+        for result in cursor.stored_results():
+            empleados = result.fetchall()
+            for empleado in empleados:
+                if empleado[0] == int(id_empleado):
+                    empleado_encontrado = empleado
+                    break
+        
+        if not empleado_encontrado:
             print("❌ Empleado no encontrado.")
             return
-
-        print(tabulate([empleado], headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
-
+            
+        print(f"\nEmpleado a eliminar: {empleado_encontrado[2]} (ID: {empleado_encontrado[0]}, Rol: {empleado_encontrado[1]})")
+        
         confirmar = input("¿Está seguro que desea eliminar este empleado? (s/n): ").strip().lower()
         if confirmar != "s":
             print("❌ Operación cancelada.")
             return
 
-        cursor.execute("DELETE FROM Empleado WHERE nombre = %s", (nombre,))
+        # Llamar al stored procedure para eliminar empleado
+        cursor.callproc('sp_eliminar_empleado', (int(id_empleado),))
         conexion.commit()
 
         print("✅ Empleado eliminado.")
-        cursor.execute("SELECT * FROM Empleado")
-        print(tabulate(cursor.fetchall(), headers=[desc[0] for desc in cursor.description], tablefmt="fancy_grid"))
+        
+        # Mostrar empleados actualizados
+        cursor.callproc('sp_leer_empleados')
+        resultados = []
+        headers = ["ID_Empleado", "rol", "nombre"]  # Headers por defecto
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay empleados registrados.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al eliminar empleado:", err)
+        print(f"❌ Error al eliminar empleado: {err}")
+        if "El ID de empleado no existe" in str(err):
+            print("⚠️ No existe un empleado con ese ID.")
+        elif "No se puede eliminar el empleado porque tiene rentas asociadas" in str(err):
+            print("⚠️ No se puede eliminar el empleado porque tiene rentas asociadas.")
+        elif "No se puede eliminar el empleado porque tiene multas asociadas" in str(err):
+            print("⚠️ No se puede eliminar el empleado porque tiene multas asociadas.")
 
     finally:
         if 'cursor' in locals(): cursor.close()
