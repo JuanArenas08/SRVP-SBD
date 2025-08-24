@@ -168,14 +168,13 @@ def rentas():
                 eliminar_renta(id_renta)
             else:
                 print("❌ Operación cancelada por el usuario.")
-        elif opc =="5":
-            mostrar_psPlus()
-
-        elif opc =="6":
-            asd
-        elif opc == "7":
+  
+        elif opc == "5":
             mostrar_rentas_por_cliente()
 
+        elif opc =="6":
+            mostrar_psPlus()
+            
         elif opc == "0":
             print("Saliendo del menú de Rentas...")
             break
