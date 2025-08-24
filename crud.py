@@ -614,20 +614,24 @@ def eliminar_empleado():
 
 #AGREGAR METODO DE PAGO
 
-def agregar_metodo_pago(id_pago, id_renta, tipo_pago):
+def agregar_metodo_pago(id_pago, tipo_pago):
     try:
-        if tipo_pago not in ['deposito', 'efectivo', 'transaccion']:
-            print("❌ Tipo de pago inválido. Debe ser: 'deposito', 'efectivo' o 'transaccion'.")
-            return
-
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-        cursor.execute("INSERT INTO Metodo_Pago (ID_Pago, ID_Renta, tipo_pago) VALUES (%s, %s, %s)", 
-                       (id_pago, id_renta, tipo_pago))
+        
+        # Llamar al stored procedure para crear método de pago
+        cursor.callproc('sp_crear_metodo_pago', (id_pago, tipo_pago))
         conexion.commit()
+        
         print("✅ Método de pago agregado correctamente.")
+        
     except mysql.connector.Error as e:
         print(f"❌ Error al agregar método de pago: {e}")
+        if "El ID de método de pago ya existe" in str(e):
+            print("⚠️ Ya existe un método de pago con ese ID.")
+        elif "El tipo de pago debe ser" in str(e):
+            print("⚠️ El tipo de pago debe ser: deposito, efectivo o transaccion")
+            
     finally:
         if conexion.is_connected():
             cursor.close()
@@ -639,11 +643,28 @@ def mostrar_metodos_pago():
     try:
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-        cursor.execute("SELECT ID_Pago, ID_Renta, tipo_pago FROM Metodo_Pago")
-        resultados = cursor.fetchall()
-        print(tabulate(resultados, headers=["ID Pago", "ID Renta", "Tipo de Pago"], tablefmt="fancy_grid"))
+        
+        # Llamar al stored procedure para leer métodos de pago
+        cursor.callproc('sp_leer_metodos_pago')
+        
+        resultados = []
+        headers = ["ID_Pago", "tipo_pago", "ID_Transaccion", "ID_Cliente", 
+                  "nombre_cliente", "fecha", "hora", "monto_total"]
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if resultados:
+            print("\n💳 Métodos de Pago Registrados:")
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay métodos de pago registrados.")
+            
     except mysql.connector.Error as e:
         print(f"❌ Error al obtener métodos de pago: {e}")
+        
     finally:
         if conexion.is_connected():
             cursor.close()
@@ -651,23 +672,24 @@ def mostrar_metodos_pago():
 
 #ACTUALIZAR METODO DE PAGO
 
-def actualizar_metodo_pago(id_pago, nuevo_id_renta, nuevo_tipo_pago):
+def actualizar_metodo_pago(id_pago, nuevo_tipo_pago):
     try:
-        if nuevo_tipo_pago not in ['deposito', 'efectivo', 'transaccion']:
-            print("❌ Tipo de pago inválido. Debe ser: 'deposito', 'efectivo' o 'transaccion'.")
-            return
-
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-        cursor.execute("UPDATE Metodo_Pago SET ID_Renta = %s, tipo_pago = %s WHERE ID_Pago = %s",
-                       (nuevo_id_renta, nuevo_tipo_pago, id_pago))
-        if cursor.rowcount == 0:
-            print("⚠️ No se encontró ningún método de pago con ese ID.")
-        else:
-            conexion.commit()
-            print("✅ Método de pago actualizado correctamente.")
+        
+        # Llamar al stored procedure para actualizar método de pago
+        cursor.callproc('sp_actualizar_metodo_pago', (id_pago, nuevo_tipo_pago))
+        conexion.commit()
+        
+        print("✅ Método de pago actualizado correctamente.")
+            
     except mysql.connector.Error as e:
         print(f"❌ Error al actualizar método de pago: {e}")
+        if "El ID de método de pago no existe" in str(e):
+            print("⚠️ No existe un método de pago con ese ID.")
+        elif "El tipo de pago debe ser" in str(e):
+            print("⚠️ El tipo de pago debe ser: deposito, efectivo o transaccion")
+            
     finally:
         if conexion.is_connected():
             cursor.close()
@@ -679,14 +701,18 @@ def eliminar_metodo_pago(id_pago):
     try:
         conexion = obtener_conexion()
         cursor = conexion.cursor()
-        cursor.execute("DELETE FROM Metodo_Pago WHERE ID_Pago = %s", (id_pago,))
-        if cursor.rowcount == 0:
-            print("⚠️ No se encontró ningún método de pago con ese ID.")
-        else:
-            conexion.commit()
-            print("✅ Método de pago eliminado correctamente.")
+        
+        # Llamar al stored procedure para eliminar método de pago
+        cursor.callproc('sp_eliminar_metodo_pago', (id_pago,))
+        conexion.commit()
+        
+        print("✅ Método de pago eliminado correctamente.")
+            
     except mysql.connector.Error as e:
         print(f"❌ Error al eliminar método de pago: {e}")
+        if "El ID de método de pago no existe" in str(e):
+            print("⚠️ No existe un método de pago con ese ID.")
+            
     finally:
         if conexion.is_connected():
             cursor.close()

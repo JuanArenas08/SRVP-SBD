@@ -831,3 +831,85 @@ def menu_reportes():
             break
         else:
             print("❌ Opción no válida. Intente nuevamente.")
+
+
+def metodo_pago():
+    while True:
+        print("\n¿Qué deseas hacer en Métodos de Pago?")
+        print("1️⃣  Añadir Método de Pago")
+        print("2️⃣  Mostrar todos los Métodos de Pago")
+        print("3️⃣  Editar Método de Pago")
+        print("4️⃣  Eliminar Método de Pago")
+        print("0️⃣  Salir")
+        print("-" * 50)
+
+        opc = input("Seleccione una opción: ").strip()
+
+        if opc == "1":
+            print("\n🆕 Ingreso de nuevo método de pago")
+
+            # ID del método de pago
+            while True:
+                id_pago = input("ID del método de pago: ").strip()
+                if not id_pago.isdigit():
+                    print("⚠️ El ID debe ser numérico.")
+                    continue
+                if id_existe("Metodo_Pago", "ID_Pago", id_pago):
+                    print("⚠️ Ese ID ya existe.")
+                    continue
+                break
+
+            # Tipo de pago
+            while True:
+                tipo_pago = input("Tipo de pago (deposito, efectivo, transaccion): ").strip().lower()
+                if tipo_pago not in ["deposito", "efectivo", "transaccion"]:
+                    print("⚠️ Tipo inválido.")
+                else:
+                    break
+
+            agregar_metodo_pago(int(id_pago), tipo_pago)
+
+        elif opc == "2":
+            mostrar_metodos_pago()
+
+        elif opc == "3":
+            print("\n✏️ Editar método de pago existente")
+
+            id_pago = input("ID del método de pago a editar: ").strip()
+            if not id_pago.isdigit() or not id_existe("Metodo_Pago", "ID_Pago", id_pago):
+                print("❌ No existe un método de pago con ese ID.")
+                continue
+
+            # Nuevo tipo de pago
+            while True:
+                nuevo_tipo_pago = input("Nuevo tipo de pago (deposito, efectivo, transaccion): ").strip().lower()
+                if nuevo_tipo_pago not in ["deposito", "efectivo", "transaccion"]:
+                    print("⚠️ Tipo de pago inválido.")
+                else:
+                    break
+
+            actualizar_metodo_pago(int(id_pago), nuevo_tipo_pago)
+
+        elif opc == "4":
+            print("\n🗑️ Eliminar método de pago")
+
+            id_pago = input("ID del método de pago a eliminar: ").strip()
+            if not id_pago.isdigit():
+                print("⚠️ El ID debe ser numérico.")
+                continue
+            if not id_existe("Metodo_Pago", "ID_Pago", id_pago):
+                print("⚠️ No existe un método de pago con ese ID.")
+                continue
+
+            confirmacion = input(f"¿Estás seguro de que deseas eliminar el método de pago con ID {id_pago}? (s/n): ").strip().lower()
+            if confirmacion == "s":
+                eliminar_metodo_pago(int(id_pago))
+            else:
+                print("❌ Operación cancelada.")
+
+        elif opc == "0":
+            print("Saliendo del menú de Métodos de Pago...")
+            break
+
+        else:
+            print("⚠️ Opción no válida. Intente nuevamente.")
