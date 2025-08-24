@@ -14,10 +14,10 @@ while True:
     print("1. Administrar Clientes")
     print("2. Administrar Rentas")
     print("3. Administrar empleados")
-    print("4. Mostrar las cuentas de playstationPlus disponibles")
-    print("5. Administrar Transacciones")
-    print("6. Administrar Multas")
-    print("7. Administrar Método de Pago")
+    print("4. Administrar Transacciones")
+    print("5. Administrar Multas")
+    print("6. Administrar Método de Pago")
+    print("7. Reportes y Estadísticas")
     print("0. Salir")
     print("-" * 50)
 
@@ -29,14 +29,15 @@ while True:
         rentas()
     elif opcion == "3":
         menu_administrar_empleados()
-    elif opcion =="4":
-        mostrar_psPlus()
-    elif opcion == "5":
+    elif opcion == "4":
         transacciones()
-    elif opcion == "6":
+    elif opcion == "5":
         multas()
-    elif opcion == "7":
+    elif opcion == "6":
         metodo_pago()
+
+    elif opcion == "7":
+        menu_reportes()
     elif opcion == "0":
         print("\n👋 ¡Gracias por usar SRVP! Hasta pronto.")
         break

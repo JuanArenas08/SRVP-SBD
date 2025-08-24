@@ -5,115 +5,142 @@ from datetime import datetime
 import time
 
 
-#CRUD CLIENTE
-#AÑADIR
+# CRUD CLIENTE - MODIFICADO PARA USAR STORED PROCEDURES
 
+# AÑADIR CLIENTE
 def agregar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = """
-        INSERT INTO Cliente (ID_Cliente, email, historial, nombre_completo, telefono)
-        VALUES (%s, %s, %s, %s, %s)
-        """
-        valores = (id_cliente, email, historial, nombre_completo, telefono)
-        cursor.execute(sql, valores)
+        
+        # Llamar al stored procedure para crear cliente
+        cursor.callproc('sp_crear_cliente', (id_cliente, email, historial, nombre_completo, telefono))
         conn.commit()
+        
         print("✅ Cliente agregado exitosamente.")
+        
     except mysql.connector.Error as err:
-        print(f"❌ No se ha podido agregar el cliente nuevo - Ingresar nuevamente con datos válidos. Error: {err}")
+        print(f"❌ Error al agregar el cliente: {err}")
+        if "El ID de cliente ya existe" in str(err):
+            print("⚠️ Ya existe un cliente con ese ID.")
+        elif "El formato del email no es válido" in str(err):
+            print("⚠️ El formato del email no es válido.")
+        elif "El historial debe ser" in str(err):
+            print("⚠️ El historial debe ser: Mala, Baja, Regular, Buena o Excelente")
+        elif "El nombre completo debe tener" in str(err):
+            print("⚠️ El nombre completo debe tener al menos 2 caracteres.")
+        elif "El teléfono debe tener" in str(err):
+            print("⚠️ El teléfono debe tener exactamente 10 dígitos.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
-#CONSULTAR
-'''
-def mostrar_clientes():
-    try:
-        conn = obtener_conexion()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Cliente")
-        resultados = cursor.fetchall()
-        for cliente in resultados:
-            print(cliente)
-    except mysql.connector.Error as err:
-        print(f"❌ Error al mostrar clientes. Detalles: {err}")
-    finally:
-        if 'cursor' in locals(): cursor.close()
-        if 'conn' in locals(): conn.close()
-'''
-
-
-
-
+# CONSULTAR CLIENTES
 def mostrar_clientes():
     print("\n👥 Lista de Clientes Registrados:")
     try:
-        conexion = obtener_conexion()  # ✅
+        conexion = obtener_conexion()
         cursor = conexion.cursor()
-        cursor.execute("SELECT * FROM Cliente")
-        resultados = cursor.fetchall()
-
-        headers = [i[0] for i in cursor.description]
-        print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        
+        # Llamar al stored procedure para leer clientes
+        cursor.callproc('sp_leer_clientes')
+        
+        resultados = []
+        headers = ["ID_Cliente", "email", "historial", "nombre_completo", "telefono"]
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print("ℹ️ No hay clientes registrados.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error:", err)
-
+        print(f"❌ Error al consultar clientes: {err}")
+        
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals():
-            conexion.close()
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
 
     time.sleep(1.5)
 
-#EDITAR
-
+# EDITAR CLIENTE
 def actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = """
-        UPDATE Cliente
-        SET email = %s,
-            historial = %s,
-            nombre_completo = %s,
-            telefono = %s
-        WHERE ID_Cliente = %s
-        """
-        valores = (email, historial, nombre_completo, telefono, id_cliente)
-        cursor.execute(sql, valores)
+        
+        # Llamar al stored procedure para actualizar cliente
+        cursor.callproc('sp_actualizar_cliente', (id_cliente, email, historial, nombre_completo, telefono))
         conn.commit()
+        
         if cursor.rowcount > 0:
             print("✅ Cliente actualizado exitosamente.")
         else:
             print("⚠️ No se encontró un cliente con ese ID.")
+            
     except mysql.connector.Error as err:
-        print(f"❌ No se ha podido actualizar el cliente - Ingresar nuevamente con datos válidos. Error: {err}")
+        print(f"❌ Error al actualizar el cliente: {err}")
+        if "El ID de cliente no existe" in str(err):
+            print("⚠️ No existe un cliente con ese ID.")
+        elif "El formato del email no es válido" in str(err):
+            print("⚠️ El formato del email no es válido.")
+        elif "El historial debe ser" in str(err):
+            print("⚠️ El historial debe ser: Mala, Baja, Regular, Buena o Excelente")
+        elif "El nombre completo debe tener" in str(err):
+            print("⚠️ El nombre completo debe tener al menos 2 caracteres.")
+        elif "El teléfono debe tener" in str(err):
+            print("⚠️ El teléfono debe tener exactamente 10 dígitos.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
-#ELIMINAR
-
+# ELIMINAR CLIENTE
 def eliminar_cliente(id_cliente):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = "DELETE FROM Cliente WHERE ID_Cliente = %s"
-        cursor.execute(sql, (id_cliente,))
+
+        # Llamar al stored procedure para eliminar cliente
+        cursor.callproc('sp_eliminar_cliente', (id_cliente,))
         conn.commit()
-        if cursor.rowcount > 0:
-            print("✅ Cliente eliminado exitosamente.")
-        else:
-            print("⚠️ No se encontró un cliente con ese ID.")
+
+        print("✅ Cliente eliminado exitosamente.")
+
     except mysql.connector.Error as err:
-        print(f"❌ No se ha podido eliminar el cliente - Ingresar nuevamente con datos válidos. Error: {err}")
+        print(f"❌ Error al eliminar el cliente: {err}")
+        if "El ID de cliente no existe" in str(err):
+            print("⚠️ No existe un cliente con ese ID.")
+        elif "No se puede eliminar el cliente porque tiene transacciones asociadas" in str(err):
+            print("⚠️ No se puede eliminar el cliente porque tiene transacciones asociadas.")
+        elif "No se puede eliminar el cliente porque tiene multas asociadas" in str(err):
+            print("⚠️ No se puede eliminar el cliente porque tiene multas asociadas.")
+        elif "No se puede eliminar el cliente porque tiene rentas asociadas" in str(err):
+            print("⚠️ No se puede eliminar el cliente porque tiene rentas asociadas.")
+        elif "No se puede eliminar el cliente porque tiene rentas en pareja asociadas" in str(err):
+            print("⚠️ No se puede eliminar el cliente porque tiene rentas en pareja asociadas.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
-
 
 def id_cliente_existe(id_cliente):
     try:
@@ -147,128 +174,176 @@ def id_existe(tabla, columna, valor):
 
 #AGREGAR RENTA
 
+#MODIFICACIÓN CON EL TRIGGER CREADO
+# CRUD RENTAS - MODIFICADO PARA USAR STORED PROCEDURES
+
+# AGREGAR RENTA
 def agregar_renta(id_renta, id_empleado, fecha_inicio,
                   fecha_devolucion_real, fecha_devolucion_esperada,
                   estado_renta, hora_transaccion, tipo, descuento=0):
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
-    try:
-        cursor.execute(
-            "INSERT INTO Renta (ID_Renta, ID_Empleado, Fecha_Inicio, "
-            "Fecha_Devolucion_Real, Fecha_Devolucion_Esperada, Estado_Renta, "
-            "Hora_Transaccion, Tipo, Descuento) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-            (id_renta, id_empleado, fecha_inicio,
-             fecha_devolucion_real, fecha_devolucion_esperada,
-             estado_renta, hora_transaccion, tipo, descuento)
-        )
-        conexion.commit()
-        print("✅ Renta agregada exitosamente.")
-    except mysql.connector.Error as error:
-        print(f"❌ Error al agregar la renta: {error}")
-    finally:
-        cursor.close()
-        conexion.close()
-
-
-#ELIMINAR RENTA
-
-def eliminar_renta(id_renta):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = "DELETE FROM Renta WHERE ID_Renta = %s"
-        cursor.execute(sql, (id_renta,))
+        
+        # Convertir hora de formato HHMM a TIME
+        hora_formateada = f"{hora_transaccion[:2]}:{hora_transaccion[2:4]}:00"
+        
+        # Llamar al stored procedure para crear renta
+        cursor.callproc('sp_crear_renta', (
+            int(id_renta), int(id_empleado), fecha_inicio,
+            fecha_devolucion_real, fecha_devolucion_esperada,
+            estado_renta, hora_formateada, tipo, descuento
+        ))
         conn.commit()
-        if cursor.rowcount > 0:
-            print("✅ Renta eliminada exitosamente.")
-        else:
-            print("⚠️ No se encontró una renta con ese ID.")
+        
+        print("✅ Renta agregada exitosamente.")
+        
     except mysql.connector.Error as err:
-        print(f"❌ No se ha podido eliminar la renta. Error: {err}")
+        print(f"❌ Error al agregar la renta: {err}")
+        if "El ID de renta ya existe" in str(err):
+            print("⚠️ Ya existe una renta con ese ID.")
+        elif "El ID de empleado no existe" in str(err):
+            print("⚠️ El ID de empleado no existe.")
+        elif "El estado de renta debe ser" in str(err):
+            print("⚠️ El estado de renta debe ser: Activo, Finalizado o Atrasada")
+        elif "El tipo debe ser" in str(err):
+            print("⚠️ El tipo debe ser: PS PLUS o VIDEOJUEGO")
+        elif "La fecha de devolución esperada no puede ser anterior" in str(err):
+            print("⚠️ La fecha de devolución esperada no puede ser anterior a la fecha de inicio")
+        elif "La fecha de devolución real no puede ser anterior" in str(err):
+            print("⚠️ La fecha de devolución real no puede ser anterior a la fecha de inicio")
+        elif "El año de la fecha de inicio debe estar" in str(err):
+            print("⚠️ El año de la fecha de inicio debe estar entre 2000 y 2100")
+        elif "La hora debe estar entre" in str(err):
+            print("⚠️ La hora debe tener un formato válido (HH:MM:SS)")
+        elif "El descuento debe ser" in str(err):
+            print("⚠️ El descuento debe ser 0 (falso) o 1 (verdadero)")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
-#MOSTRAR RENTAS
-
+# MOSTRAR RENTAS
 def mostrar_rentas():
     print("\n🧾 Rentas Actuales:\n")
-
     try:
-        conexion = obtener_conexion() 
+        conexion = obtener_conexion()
         cursor = conexion.cursor()
 
-        query = """
-        SELECT 
-            Renta.ID_Renta,
-            Empleado.nombre AS Nombre_Empleado,
-            Renta.fecha_inicio,
-            Renta.fecha_devolucion_esperada,
-            Renta.fecha_devolucion_real,
-            Renta.estado_renta,
-            Renta.hora_transaccion,
-            Renta.descuento,
-            Renta.Tipo
-        FROM Renta
-        JOIN Empleado ON Renta.ID_Empleado = Empleado.ID_Empleado
-        ORDER BY Renta.ID_Renta;
-        """
-
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        columnas = [desc[0] for desc in cursor.description]
-
+        # Llamar al stored procedure para leer rentas
+        cursor.callproc('sp_leer_rentas')
+        
+        resultados = []
+        headers = ["ID_Renta", "ID_Empleado", "nombre_empleado", "fecha_inicio", 
+                  "fecha_devolucion_esperada", "fecha_devolucion_real", "estado_renta",
+                  "hora_transaccion", "descuento", "Tipo"]
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
         if resultados:
-            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
         else:
             print("No hay rentas registradas.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al conectar o consultar la base de datos:", err)
-
+        print(f"❌ Error al consultar la base de datos: {err}")
+        
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conexion' in locals():
-            conexion.close()
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
 
     time.sleep(1.5)
 
-#EDITAR RENTA
-
+# EDITAR RENTA
 def actualizar_renta(id_renta, id_empleado, fecha_inicio, fecha_devolucion_real,
                      fecha_devolucion_esperada, estado_renta, hora_transaccion, tipo):
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
-        sql = """
-        UPDATE Renta
-        SET ID_Empleado = %s,
-            fecha_inicio = %s,
-            fecha_devolucion_real = %s,
-            fecha_devolucion_esperada = %s,
-            estado_renta = %s,
-            hora_transaccion = %s,
-            Tipo = %s
-        WHERE ID_Renta = %s
-        """
-        valores = (id_empleado, fecha_inicio, fecha_devolucion_real,
-                   fecha_devolucion_esperada, estado_renta, hora_transaccion,
-                   tipo, id_renta)
-        cursor.execute(sql, valores)
+        
+        # Convertir hora de formato HHMM a TIME
+        hora_formateada = f"{hora_transaccion[:2]}:{hora_transaccion[2:4]}:00"
+        
+        # Llamar al stored procedure para actualizar renta
+        cursor.callproc('sp_actualizar_renta', (
+            int(id_renta), int(id_empleado), fecha_inicio,
+            fecha_devolucion_real, fecha_devolucion_esperada,
+            estado_renta, hora_formateada, tipo, 0  # descuento por defecto 0
+        ))
         conn.commit()
+        
         if cursor.rowcount > 0:
             print("✅ Renta actualizada exitosamente.")
         else:
             print("⚠️ No se encontró una renta con ese ID.")
+            
     except mysql.connector.Error as err:
-        print(f"❌ No se pudo actualizar la renta. Error: {err}")
+        print(f"❌ Error al actualizar la renta: {err}")
+        if "El ID de renta no existe" in str(err):
+            print("⚠️ No existe una renta con ese ID.")
+        elif "El ID de empleado no existe" in str(err):
+            print("⚠️ El ID de empleado no existe.")
+        elif "El estado de renta debe ser" in str(err):
+            print("⚠️ El estado de renta debe ser: Activo, Finalizado o Atrasada")
+        elif "El tipo debe ser" in str(err):
+            print("⚠️ El tipo debe ser: PS PLUS o VIDEOJUEGO")
+        elif "La fecha de devolución esperada no puede ser anterior" in str(err):
+            print("⚠️ La fecha de devolución esperada no puede ser anterior a la fecha de inicio")
+        elif "La fecha de devolución real no puede ser anterior" in str(err):
+            print("⚠️ La fecha de devolución real no puede ser anterior to the fecha de inicio")
+        elif "El año de la fecha de inicio debe estar" in str(err):
+            print("⚠️ El año de la fecha de inicio debe estar entre 2000 y 2100")
+        elif "La hora debe estar entre" in str(err):
+            print("⚠️ La hora debe tener un formato válido (HH:MM:SS)")
+        elif "El descuento debe ser" in str(err):
+            print("⚠️ El descuento debe ser 0 (falso) o 1 (verdadero)")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
+# ELIMINAR RENTA
+def eliminar_renta(id_renta):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
 
+        # Llamar al stored procedure para eliminar renta
+        cursor.callproc('sp_eliminar_renta', (int(id_renta),))
+        conn.commit()
+
+        print("✅ Renta eliminada exitosamente.")
+
+    except mysql.connector.Error as err:
+        print(f"❌ Error al eliminar la renta: {err}")
+        if "El ID de renta no existe" in str(err):
+            print("⚠️ No existe una renta con ese ID.")
+        elif "No se puede eliminar la renta porque tiene transacciones asociadas" in str(err):
+            print("⚠️ No se puede eliminar la renta porque tiene transacciones asociadas.")
+        elif "No se puede eliminar la renta porque tiene multas asociadas" in str(err):
+            print("⚠️ No se puede eliminar la renta porque tiene multas asociadas.")
+        elif "No se puede eliminar la renta porque tiene métodos de pago asociados" in str(err):
+            print("⚠️ No se puede eliminar la renta porque tiene métodos de pago asociados.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
 
 
 
@@ -621,119 +696,153 @@ def eliminar_metodo_pago(id_pago):
 
 #CRUD MULTAS
 
-#AÑADIR MULTA
+# CRUD MULTAS - MODIFICADO PARA USAR STORED PROCEDURES
 
-def agregar_multa(id_multa, id_cliente, id_renta, fecha_inicio,
-                  fecha_fin, motivo, monto):
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
+# AÑADIR MULTA
+def agregar_multa(id_multa, id_cliente, id_renta, fecha_inicio, fecha_fin, motivo, monto):
     try:
-        cursor.execute(
-            "INSERT INTO Multa (ID_Multa, ID_Cliente, ID_Renta, fecha_inicio, fecha_fin, motivo, monto) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-            (id_multa, id_cliente, id_renta, fecha_inicio, fecha_fin, motivo, monto)
-        )
-        conexion.commit()
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        
+        # Llamar al stored procedure para crear multa
+        cursor.callproc('sp_crear_multa', (
+            int(id_multa), int(id_cliente), int(id_renta), 
+            fecha_inicio, fecha_fin, motivo, int(monto)
+        ))
+        conn.commit()
+        
         print("✅ Multa agregada exitosamente.")
-    except mysql.connector.Error as error:
-        print(f"❌ Error al agregar la multa: {error}")
-    finally:
-        cursor.close()
-        conexion.close()
-
-
-#ELIMINAR MULTA 
-def eliminar_multa(id_multa):
-    try:
-        conn = obtener_conexion()
-        cursor = conn.cursor()
-
-        # Eliminar primero las referencias en aplica_multa (clave foránea)
-        cursor.execute("DELETE FROM aplica_multa WHERE ID_Multa = %s", (id_multa,))
-
-        # Luego eliminar la multa
-        cursor.execute("DELETE FROM Multa WHERE ID_Multa = %s", (id_multa,))
-        conn.commit()
-
-        print("✅ Multa eliminada correctamente.")
-
+        
     except mysql.connector.Error as err:
-        print(f"❌ No se ha podido eliminar la multa. Error: {err}")
-
+        print(f"❌ Error al agregar la multa: {err}")
+        if "El ID de multa ya existe" in str(err):
+            print("⚠️ Ya existe una multa con ese ID.")
+        elif "El ID de cliente no existe" in str(err):
+            print("⚠️ El ID de cliente no existe.")
+        elif "El ID de renta no existe" in str(err):
+            print("⚠️ El ID de renta no existe.")
+        elif "La fecha de fin no puede ser anterior" in str(err):
+            print("⚠️ La fecha de fin no puede ser anterior a la fecha de inicio.")
+        elif "El año de la fecha de inicio debe estar" in str(err):
+            print("⚠️ El año de la fecha de inicio debe estar entre 2000 y 2100.")
+        elif "El año de la fecha de fin debe estar" in str(err):
+            print("⚠️ El año de la fecha de fin debe estar entre 2000 y 2100.")
+        elif "El monto debe ser mayor a 0" in str(err):
+            print("⚠️ El monto debe ser mayor a 0.")
+        elif "El motivo no puede estar vacío" in str(err):
+            print("⚠️ El motivo no puede estar vacío.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
 
-#ACTUALIZAR MULTA
-def actualizar_multa(id_multa, id_cliente, id_renta, fecha_inicio,
-                     fecha_fin, motivo, monto):
-    try:
-        conn = obtener_conexion()
-        cursor = conn.cursor()
-        sql = """
-        UPDATE Multa
-        SET ID_Cliente = %s,
-            ID_Renta = %s,
-            fecha_inicio = %s,
-            fecha_fin = %s,
-            motivo = %s,
-            monto = %s
-        WHERE ID_Multa = %s
-        """
-        valores = (id_cliente, id_renta, fecha_inicio, fecha_fin, motivo, monto, id_multa)
-        cursor.execute(sql, valores)
-        conn.commit()
-        if cursor.rowcount > 0:
-            print("✅ Multa actualizada exitosamente.")
-        else:
-            print("⚠️ No se encontró una multa con ese ID.")
-    except mysql.connector.Error as err:
-        print(f"❌ No se pudo actualizar la multa. Error: {err}")
-    finally:
-        if 'cursor' in locals(): cursor.close()
-        if 'conn' in locals(): conn.close()
-
-
-#MOSTRAR MULTA
+# MOSTRAR MULTAS
 def mostrar_multas():
     print("\n🧾 Multas registradas:\n")
-
     try:
         conexion = obtener_conexion()
         cursor = conexion.cursor()
 
-        query = """
-        SELECT 
-            Multa.ID_Multa,
-            Cliente.nombre_completo AS Nombre_Cliente,
-            Multa.ID_Renta,
-            Multa.fecha_inicio,
-            Multa.fecha_fin,
-            Multa.motivo,
-            Multa.monto
-        FROM Multa
-        JOIN Cliente ON Multa.ID_Cliente = Cliente.ID_Cliente
-        ORDER BY Multa.ID_Multa;
-        """
-
-
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        columnas = [desc[0] for desc in cursor.description]
-
+        # Llamar al stored procedure para leer multas
+        cursor.callproc('sp_leer_multas')
+        
+        resultados = []
+        headers = ["ID_Multa", "ID_Cliente", "nombre_cliente", "ID_Renta", 
+                  "tipo_renta", "fecha_inicio", "fecha_fin", "motivo", "monto"]
+        
+        for result in cursor.stored_results():
+            resultados = result.fetchall()
+            if result.description:
+                headers = [desc[0] for desc in result.description]
+        
         if resultados:
-            print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
         else:
             print("No hay multas registradas.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
 
     except mysql.connector.Error as err:
-        print("❌ Error al conectar o consultar la base de datos:", err)
-
+        print(f"❌ Error al consultar la base de datos: {err}")
+        
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
     finally:
         if 'cursor' in locals(): cursor.close()
         if 'conexion' in locals(): conexion.close()
 
     time.sleep(1.5)
+
+# ACTUALIZAR MULTA
+def actualizar_multa(id_multa, id_cliente, id_renta, fecha_inicio, fecha_fin, motivo, monto):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        
+        # Llamar al stored procedure para actualizar multa
+        cursor.callproc('sp_actualizar_multa', (
+            int(id_multa), int(id_cliente), int(id_renta), 
+            fecha_inicio, fecha_fin, motivo, int(monto)
+        ))
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            print("✅ Multa actualizada exitosamente.")
+        else:
+            print("⚠️ No se encontró una multa con ese ID.")
+            
+    except mysql.connector.Error as err:
+        print(f"❌ Error al actualizar la multa: {err}")
+        if "El ID de multa no existe" in str(err):
+            print("⚠️ No existe una multa con ese ID.")
+        elif "El ID de cliente no existe" in str(err):
+            print("⚠️ El ID de cliente no existe.")
+        elif "El ID de renta no existe" in str(err):
+            print("⚠️ El ID de renta no existe.")
+        elif "La fecha de fin no puede ser anterior" in str(err):
+            print("⚠️ La fecha de fin no puede ser anterior a la fecha de inicio.")
+        elif "El año de la fecha de inicio debe estar" in str(err):
+            print("⚠️ El año de la fecha de inicio debe estar entre 2000 y 2100.")
+        elif "El año de la fecha de fin debe estar" in str(err):
+            print("⚠️ El año de la fecha de fin debe estar entre 2000 y 2100.")
+        elif "El monto debe ser mayor a 0" in str(err):
+            print("⚠️ El monto debe ser mayor a 0.")
+        elif "El motivo no puede estar vacío" in str(err):
+            print("⚠️ El motivo no puede estar vacío.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+
+# ELIMINAR MULTA
+def eliminar_multa(id_multa):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+
+        # Llamar al stored procedure para eliminar multa
+        cursor.callproc('sp_eliminar_multa', (int(id_multa),))
+        conn.commit()
+
+        print("✅ Multa eliminada exitosamente.")
+
+    except mysql.connector.Error as err:
+        print(f"❌ Error al eliminar la multa: {err}")
+        if "El ID de multa no existe" in str(err):
+            print("⚠️ No existe una multa con ese ID.")
+            
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
 
 
 # CRUD TRANSACCIONES
@@ -868,3 +977,174 @@ def mostrar_transacciones():
         if 'conexion' in locals(): conexion.close()
 
     time.sleep(1.5)
+
+
+# FUNCIONES PARA LAS VIEWS - Agregar al final de crud.py
+
+def mostrar_clientes_frecuentes():
+    print("\n🏆 Clientes Más Frecuentes:")
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        
+        # DEBUG: Verificar la base de datos actual
+        cursor.execute("SELECT DATABASE()")
+        db_actual = cursor.fetchone()[0]
+        print(f"📋 Conectado a la base de datos: {db_actual}")
+        
+        # DEBUG: Verificar si la view existe
+        cursor.execute("""
+            SELECT TABLE_NAME 
+            FROM INFORMATION_SCHEMA.VIEWS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'clientes_frecuentes'
+        """)
+        view_existe = cursor.fetchone()
+        
+        if view_existe:
+            print("✅ View 'clientes_frecuentes' encontrada")
+            # Consultar la view
+            cursor.execute("SELECT * FROM clientes_frecuentes")
+        else:
+            print("⚠️ View no encontrada, usando consulta directa")
+            # Consulta directa alternativa
+            cursor.execute("""
+                SELECT 
+                    c.ID_Cliente, 
+                    c.nombre_completo, 
+                    c.telefono, 
+                    c.email, 
+                    COUNT(r.ID_Renta) AS total_rentas
+                FROM cliente c
+                JOIN realiza rl ON c.ID_Cliente = rl.ID_Cliente
+                JOIN renta r ON rl.ID_Renta = r.ID_Renta
+                GROUP BY c.ID_Cliente, c.nombre_completo, c.telefono, c.email
+                ORDER BY total_rentas DESC
+            """)
+        
+        resultados = cursor.fetchall()
+        headers = [i[0] for i in cursor.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+            print(f"📊 Total de clientes: {len(resultados)}")
+        else:
+            print("ℹ️ No hay datos de clientes frecuentes.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print(f"❌ Error al consultar clientes frecuentes: {err}")
+        print("💡 Ejecuta en MySQL: SHOW FULL TABLES WHERE TABLE_TYPE LIKE 'VIEW'")
+        
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+    time.sleep(2)
+
+def mostrar_videojuegos_mas_rentados():
+    print("\n🎮 Videojuegos Más Rentados:")
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        
+        # DEBUG: Verificar la base de datos actual
+        cursor.execute("SELECT DATABASE()")
+        db_actual = cursor.fetchone()[0]
+        print(f"📋 Conectado a la base de datos: {db_actual}")
+        
+        # DEBUG: Verificar si la view existe
+        cursor.execute("""
+            SELECT TABLE_NAME 
+            FROM INFORMATION_SCHEMA.VIEWS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'videojuegos_mas_rentados'
+        """)
+        view_existe = cursor.fetchone()
+        
+        if view_existe:
+            print("✅ View 'videojuegos_mas_rentados' encontrada")
+            # Consultar la view
+            cursor.execute("SELECT * FROM videojuegos_mas_rentados")
+        else:
+            print("⚠️ View no encontrada, usando consulta directa")
+            # Consulta directa alternativa
+            cursor.execute("""
+                SELECT 
+                    v.ID AS ID_Videojuego, 
+                    v.titulo, 
+                    v.plataforma, 
+                    COUNT(r.ID_Renta) AS veces_rentado
+                FROM videojuego v
+                JOIN renta r ON v.ID = r.ID_Renta
+                GROUP BY v.ID, v.titulo, v.plataforma
+                ORDER BY veces_rentado DESC
+            """)
+        
+        resultados = cursor.fetchall()
+        headers = [i[0] for i in cursor.description]
+        
+        if resultados:
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+            print(f"🎯 Total de videojuegos: {len(resultados)}")
+        else:
+            print("ℹ️ No hay datos de videojuegos rentados.")
+            print(tabulate([], headers=headers, tablefmt="fancy_grid"))
+
+    except mysql.connector.Error as err:
+        print(f"❌ Error al consultar videojuegos más rentados: {err}")
+        print("💡 Ejecuta en MySQL: SHOW FULL TABLES WHERE TABLE_TYPE LIKE 'VIEW'")
+        
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+    time.sleep(2)
+
+# FUNCIÓN ADICIONAL PARA MOSTRAR DETALLES DE RENTAS POR CLIENTE
+def mostrar_detalles_rentas_cliente(id_cliente):
+    """Muestra el detalle completo de las rentas de un cliente específico"""
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        
+        query = """
+        SELECT 
+            r.ID_Renta,
+            r.fecha_inicio,
+            r.fecha_devolucion_esperada,
+            r.fecha_devolucion_real,
+            r.estado_renta,
+            r.Tipo,
+            v.titulo AS videojuego,
+            v.plataforma,
+            e.nombre AS empleado
+        FROM renta r
+        JOIN realiza rl ON r.ID_Renta = rl.ID_Renta
+        LEFT JOIN videojuego v ON r.ID_Renta = v.ID
+        JOIN empleado e ON r.ID_Empleado = e.ID_Empleado
+        WHERE rl.ID_Cliente = %s
+        ORDER BY r.fecha_inicio DESC
+        """
+        
+        cursor.execute(query, (id_cliente,))
+        resultados = cursor.fetchall()
+        
+        if resultados:
+            headers = [desc[0] for desc in cursor.description]
+            print(f"\n📋 Detalles de rentas para el cliente ID: {id_cliente}")
+            print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
+        else:
+            print(f"ℹ️ El cliente ID {id_cliente} no tiene rentas registradas.")
+            
+    except mysql.connector.Error as err:
+        print(f"❌ Error al consultar detalles: {err}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()

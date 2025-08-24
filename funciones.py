@@ -11,7 +11,8 @@ def rentas():
         print("2️⃣  Mostrar todas las Rentas")
         print("3️⃣  Editar Renta")
         print("4️⃣  Eliminar Renta")
-        print(" 5  Mostrar Renta de un cliente")
+        print("5️⃣  Mostrar Renta de un cliente")
+        print("6️⃣  Cuentas PS Plus Disponibles")
         print("0️⃣  Salir")
         print("-" * 50)
 
@@ -88,7 +89,7 @@ def rentas():
                 else:
                     break
 
-            agregar_renta(id_renta, id_empleado, fecha_inicio,
+            agregar_renta(id_renta, id_empleado, fecha_inicio_str,
                           fecha_devolucion_real, fecha_devolucion_esperada,
                           estado_renta, hora_transaccion, tipo)
 
@@ -101,7 +102,7 @@ def rentas():
             id_renta = input("Ingrese el ID de la renta a editar: ").strip()
             if not id_renta.isdigit() or not id_existe("Renta", "ID_Renta", id_renta):
                 print("❌ No existe una renta con ese ID.")
-                return
+                continue
 
             # Validar nuevo ID de Empleado
             while True:
@@ -161,7 +162,6 @@ def rentas():
                             fecha_devolucion_esperada.strftime("%Y-%m-%d"),
                             estado_renta, hora_transaccion, tipo)
 
-
         elif opc == "4":
             print("\nEliminar Renta")
             id_renta = input("Ingrese el ID de la renta a eliminar: ").strip()
@@ -170,7 +170,12 @@ def rentas():
                 eliminar_renta(id_renta)
             else:
                 print("❌ Operación cancelada por el usuario.")
-        elif opc == "5":
+        elif opc =="5":
+            mostrar_psPlus()
+
+        elif opc =="6":
+            asd
+        elif opc == "7":
             mostrar_rentas_por_cliente()
 
         elif opc == "0":
@@ -201,11 +206,6 @@ def clientes():
                 id_cliente = input("ID Cliente: ").strip()
                 if not id_cliente.isdigit():
                     print("⚠️ El ID debe ser un número.")
-                    continue
-
-                # Verificar si el ID ya existe en la base
-                if id_cliente_existe(id_cliente):
-                    print("⚠️ Este ID ya existe. Ingrese otro.")
                     continue
                 break
 
@@ -251,10 +251,17 @@ def clientes():
         elif opc == "3":
             print("\nActualizar Cliente")
             id_cliente = input("Ingrese el ID del cliente a actualizar: ").strip()
+            
+            # Verificar si el cliente existe
+            if not id_cliente.isdigit() or not id_existe("Cliente", "ID_Cliente", id_cliente):
+                print("❌ No existe un cliente con ese ID.")
+                continue
+                
             email = input("Nuevo Email: ").strip()
             historial = input("Nuevo Historial: ").strip().capitalize()
             nombre_completo = input("Nuevo Nombre Completo: ").strip().title()
             telefono = input("Nuevo Teléfono: ").strip()
+            
             actualizar_cliente(id_cliente, email, historial, nombre_completo, telefono)
 
         elif opc == "4":
@@ -264,6 +271,7 @@ def clientes():
             if not id_cliente.isdigit():
                 print("⚠️ El ID debe ser numérico.")
                 continue
+                
             if not id_existe("Cliente", "ID_Cliente", id_cliente):
                 print("⚠️ No existe un cliente con ese ID.")
                 continue
@@ -290,15 +298,12 @@ def clientes():
                 eliminar_cliente(id_cliente)
             else:
                 print("❌ Operación cancelada por el usuario.")
-
-
         elif opc == "0":
             print("Saliendo del menú de Clientes...")
             break
 
         else:
             print("Opción no válida. Intente nuevamente...")
-
 
 
 def mostrar_psPlus():
@@ -515,8 +520,6 @@ def multas():
             agregar_multa(id_multa, id_cliente, id_renta, fecha_inicio.strftime("%Y-%m-%d"),
                         fecha_fin.strftime("%Y-%m-%d"), motivo, int(monto))
 
-
-
         elif opc == "2":
             mostrar_multas()
 
@@ -538,10 +541,10 @@ def multas():
                     id_cliente, id_renta = resultado
                 else:
                     print("❌ No se pudo recuperar los datos de la multa.")
-                    return
+                    continue
             except mysql.connector.Error as err:
                 print(f"❌ Error al recuperar información de la multa: {err}")
-                return
+                continue
             finally:
                 if 'cursor' in locals(): cursor.close()
                 if 'conn' in locals(): conn.close()
@@ -615,14 +618,12 @@ def multas():
             else:
                 print("❌ Operación cancelada por el usuario.")
 
-
         elif opc == "0":
             print("Saliendo del menú de Multas...")
             break
 
         else:
             print("⚠️ Opción no válida. Intente nuevamente.")
-
 
 def transacciones():
     while True:
@@ -811,3 +812,24 @@ def transacciones():
 
         else:
             print("⚠️ Opción no válida. Intente nuevamente.")
+
+def menu_reportes():
+    while True:
+        print("\n" + "="*50)
+        print("📊 REPORTES Y ESTADÍSTICAS")
+        print("="*50)
+        print("1️⃣  Clientes Más Frecuentes")
+        print("2️⃣  Videojuegos Más Rentados")
+        print("0️⃣  Volver al menú principal")
+        print("-"*50)
+        
+        opcion = input("Seleccione un reporte: ").strip()
+        
+        if opcion == "1":
+            mostrar_clientes_frecuentes()
+        elif opcion == "2":
+            mostrar_videojuegos_mas_rentados()
+        elif opcion == "0":
+            break
+        else:
+            print("❌ Opción no válida. Intente nuevamente.")
