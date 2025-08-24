@@ -1,8 +1,6 @@
-
 import mysql.connector
 from conexion import *
 from crud import *
-
 
 def rentas():
     while True:

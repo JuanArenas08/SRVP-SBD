@@ -1023,8 +1023,7 @@ def mostrar_clientes_frecuentes():
             """)
         
         resultados = cursor.fetchall()
-        headers = [i[0] for i in cursor.description]
-        
+        headers = [i[0] for i in cursor.description] 
         if resultados:
             print(tabulate(resultados, headers=headers, tablefmt="fancy_grid"))
             print(f"📊 Total de clientes: {len(resultados)}")

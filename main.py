@@ -3,7 +3,6 @@ from funciones import *
 from conexion import *
 # Para conectarse a su base de datos, debe ingresar el usuario, password, nombre del servidor, nombre de la base de datos y el puerto.
 # Se debe ingresar en conexion.py
-
 # MENÚ PRINCIPAL
 while True:
     print("=" * 50)
